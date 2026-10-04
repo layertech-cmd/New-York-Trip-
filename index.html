@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Foliage Run Road Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>*{box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>
+/* Layout: a road-atlas plate (the map) with a margin column of overnight stops; the drive animates along the plate. */
+:root{
+  --paper:#EEF0E6; --land:#E2E7D1; --water:#B9D4E2; --relief:#D3DABD; --card:#FBFBF6;
+  --ink:#1B241E; --ink-soft:#4E5A50; --ink-faint:#7F8A80; --line:#98A38F; --hair:#CDD3C3;
+  --route:#D0581C; --route-dash:#FFF4E6; --stay:#75203A; --stay-ink:#FFFFFF; --taxi:#8F9A8C;
+  --display:"Barlow Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --body:"Barlow","Helvetica Neue",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#131915; --land:#1E2822; --water:#14313D; --relief:#273529; --card:#1A231D;
+  --ink:#ECEFE3; --ink-soft:#B0BAA9; --ink-faint:#7E897E; --line:#4E5B4C; --hair:#2E3A31;
+  --route:#F2863F; --route-dash:#3A2414; --stay:#E36A89; --stay-ink:#1A0A10; --taxi:#5E6A5C; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --paper:#131915; --land:#1E2822; --water:#14313D; --relief:#273529; --card:#1A231D;
+  --ink:#ECEFE3; --ink-soft:#B0BAA9; --ink-faint:#7E897E; --line:#4E5B4C; --hair:#2E3A31;
+  --route:#F2863F; --route-dash:#3A2414; --stay:#E36A89; --stay-ink:#1A0A10; --taxi:#5E6A5C; color-scheme:dark }
+
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:22px 40px}
+*{box-sizing:border-box}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 24px;margin-bottom:16px}
+.top h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,5vw,54px);line-height:.95;letter-spacing:.01em;margin:0;text-transform:uppercase;text-wrap:balance}
+.top h1 em{font-style:normal;color:var(--route)}
+.top .who{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);margin-top:8px;letter-spacing:.02em}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;min-width:0}
+.btn{font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.04em;text-transform:uppercase;background:var(--route);color:#fff;border:0;border-radius:6px;padding:9px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:focus-visible,.stay:focus-visible,.row:focus-visible{outline:3px solid var(--route);outline-offset:3px}
+.btn svg{width:14px;height:14px;fill:currentColor}
+.scrub{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--hair);border-radius:8px;padding:6px 12px}
+.scrub label{font-family:var(--mono);font-size:12px;color:var(--ink-soft);white-space:nowrap}
+.scrub input{width:170px;accent-color:var(--route)}
+.scrub output{font-family:var(--mono);font-size:12.5px;min-width:9.5ch;font-variant-numeric:tabular-nums}
+
+/* plate + margin */
+.plate{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr);gap:18px;align-items:start}
+.mapbox{min-width:0;background:var(--land);border:1px solid var(--line);border-radius:4px;overflow:hidden;position:relative;box-shadow:0 1px 0 var(--hair), 0 14px 30px -24px rgba(0,0,0,.45)}
+.mapbox svg{display:block;width:100%;height:auto;max-width:100%}
+.hud{position:absolute;right:12px;bottom:12px;text-align:right;background:var(--card);border:1px solid var(--hair);border-radius:6px;padding:8px 11px;font-family:var(--mono);font-size:12px;line-height:1.35;color:var(--ink-soft);pointer-events:none;max-width:min(300px,70%)}
+.hud b{display:block;font-family:var(--display);font-size:20px;letter-spacing:.02em;color:var(--ink);text-transform:uppercase;line-height:1.05;margin-bottom:2px}
+.hud .km{color:var(--route);font-weight:500}
+
+/* svg styling via tokens */
+.land{fill:var(--land)} .water{fill:var(--water)} .relief{fill:var(--relief)}
+.river{fill:none;stroke:var(--water);stroke-width:5;stroke-linecap:round;stroke-linejoin:round} .river.thin{stroke-width:3}
+.border{fill:none;stroke:var(--line);stroke-width:1.1;stroke-dasharray:5 4}
+.lbl{font-family:var(--display);fill:var(--ink-faint);letter-spacing:.14em;font-weight:600}
+.lbl.state{font-size:13px} .lbl.water{font-family:var(--body);font-style:italic;font-weight:400;font-size:12px;letter-spacing:.04em;fill:#5F85A0}
+:root[data-theme="dark"] .lbl.water{fill:#7FB0CB} @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .lbl.water{fill:#7FB0CB} }
+.lbl.river{font-family:var(--body);font-style:italic;font-weight:400;font-size:11px;letter-spacing:.03em;fill:#5F85A0;transform:rotate(-78deg);transform-box:fill-box;transform-origin:center}
+:root[data-theme="dark"] .lbl.river{fill:#7FB0CB} @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .lbl.river{fill:#7FB0CB} }
+.lbl.hills{font-size:10.5px;letter-spacing:.2em;font-weight:500;opacity:.8}
+.city circle{fill:var(--ink-soft)} .city text{font-family:var(--body);font-size:11px;fill:var(--ink-soft)}
+.scale line{stroke:var(--ink-soft);stroke-width:1.2} .scale text{font-family:var(--mono);font-size:10px;fill:var(--ink-soft)}
+.compass circle{fill:none;stroke:var(--ink-soft);stroke-width:1} .compass path{fill:var(--route)} .compass text{font-family:var(--display);font-size:11px;fill:var(--ink-soft);font-weight:700}
+.taxi{fill:none;stroke:var(--taxi);stroke-width:2;stroke-dasharray:2 4;stroke-linecap:round}
+.route-under{fill:none;stroke:var(--paper);stroke-width:7;stroke-linecap:round;stroke-linejoin:round;opacity:.75}
+.route{fill:none;stroke:var(--route);stroke-width:4.2;stroke-linecap:round;stroke-linejoin:round;transition:stroke-width .25s,opacity .25s}
+.route.spur{stroke-width:3} .route.dim{opacity:.28} .route.lit{stroke-width:5.5}
+.route-dash{fill:none;stroke:var(--route-dash);stroke-width:1.3;stroke-dasharray:6 8;stroke-linecap:round;pointer-events:none}
+.driving .route-dash{animation:ants 1.2s linear infinite}
+@keyframes ants{to{stroke-dashoffset:-14}}
+.shield rect{fill:var(--card);stroke:var(--ink-soft);stroke-width:1} .shield text{font-family:var(--display);font-size:10px;font-weight:700;fill:var(--ink);letter-spacing:.04em}
+.wp circle{fill:var(--card);stroke:var(--route);stroke-width:2.2} .wp text{font-family:var(--body);font-size:11.5px;font-weight:500;fill:var(--ink-soft)}
+.jfk circle{fill:var(--card);stroke:var(--ink-soft);stroke-width:1.4} .jfk path{stroke:var(--ink-soft);stroke-width:1.6;fill:none} .jfk text{font-family:var(--mono);font-size:10.5px;fill:var(--ink-soft)}
+.stay{cursor:pointer}
+.stay .halo{fill:var(--stay);opacity:0;transition:opacity .25s}
+.stay .pin{fill:var(--stay);stroke:var(--card);stroke-width:2.5}
+.stay .num{font-family:var(--display);font-size:13px;font-weight:700;fill:var(--stay-ink)}
+.stay .name{font-family:var(--display);font-size:16px;font-weight:700;fill:var(--ink);letter-spacing:.02em;paint-order:stroke;stroke:var(--land);stroke-width:4;stroke-linejoin:round}
+.stay .sub{font-family:var(--body);font-size:10.5px;fill:var(--ink-soft);paint-order:stroke;stroke:var(--land);stroke-width:3;stroke-linejoin:round}
+.stay:hover .halo,.stay.on .halo{opacity:.22}
+.stay.on .pin{stroke:var(--route);stroke-width:3}
+.car rect{fill:var(--ink);stroke:var(--paper);stroke-width:1.2} .car .glass{fill:var(--water);stroke:none} .car circle{fill:var(--ink)}
+@media (prefers-reduced-motion:reduce){ .driving .route-dash{animation:none} .route,.stay .halo{transition:none} }
+
+/* margin column */
+.margin{min-width:0;display:flex;flex-direction:column;gap:8px}
+.margin h2{font-family:var(--display);font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin:4px 0 2px}
+.row{display:grid;grid-template-columns:34px 1fr auto;gap:0 12px;align-items:center;background:var(--card);border:1px solid var(--hair);border-radius:6px;padding:10px 12px;cursor:pointer;text-align:left;color:inherit;font:inherit;width:100%;min-width:0;transition:border-color .2s,transform .2s}
+.row:hover{border-color:var(--line)}
+.row.on{border-color:var(--route);box-shadow:inset 3px 0 0 var(--route)}
+.row .n{width:26px;height:26px;border-radius:50%;background:var(--stay);color:var(--stay-ink);font-family:var(--display);font-weight:700;font-size:14px;display:grid;place-items:center}
+.row .t{font-family:var(--display);font-weight:600;font-size:19px;letter-spacing:.015em;line-height:1.05}
+.row .d{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+.row .nt{font-family:var(--mono);font-size:11px;color:var(--ink-faint);white-space:nowrap}
+.row.air{cursor:default;opacity:.8} .row.air .n{background:transparent;color:var(--ink-soft);border:1.5px solid var(--line)}
+.card{display:none;background:var(--card);border:1px solid var(--hair);border-radius:6px;overflow:hidden;margin-top:-2px}
+.card.open{display:block}
+.card img{display:block;width:100%;aspect-ratio:3/2;object-fit:cover;max-width:100%}
+.card .body{padding:12px 14px 14px}
+.card p{margin:0 0 6px} .card .blurb{font-size:15px;color:var(--ink)} .card .hotel{font-weight:600} .card .addr{color:var(--ink-soft);font-size:13.5px}
+.odo{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:16px;padding-top:12px;border-top:1px solid var(--hair);font-family:var(--mono);font-size:12.5px;color:var(--ink-soft)}
+.odo b{color:var(--ink);font-family:var(--display);font-size:20px;font-weight:700;margin-right:5px;letter-spacing:.02em}
+@media (max-width:820px){ .plate{grid-template-columns:1fr} .scrub input{width:130px} }
+.theme{font-family:var(--mono);font-size:12px;background:var(--card);color:var(--ink-soft);border:1px solid var(--hair);border-radius:8px;padding:8px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.theme:focus-visible{outline:3px solid var(--route);outline-offset:3px}
+.theme svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.card .hotel{font-family:var(--display);font-size:22px;font-weight:600;letter-spacing:.01em;line-height:1.05;margin:4px 0 2px}
+.card .addr{color:var(--ink-soft);font-size:14px;margin-bottom:10px}
+.refline{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:4px}
+.refline .k{font-family:var(--display);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+.refline code{font-family:var(--mono);font-size:15px;font-weight:500;background:var(--paper);border:1px solid var(--hair);border-radius:5px;padding:4px 9px;color:var(--ink);letter-spacing:.03em;user-select:all}
+.copy{font-family:var(--mono);font-size:11px;background:transparent;border:1px solid var(--hair);border-radius:5px;padding:4px 8px;color:var(--ink-soft);cursor:pointer}
+.copy:hover{border-color:var(--line)} .copy:focus-visible{outline:2px solid var(--route);outline-offset:2px}
+.row.car .n{background:var(--route);color:#fff}
+.row.car .n svg{width:15px;height:15px;fill:currentColor}
+.doclink{display:inline-block;margin-top:10px;font-family:var(--mono);font-size:12px;color:var(--route);text-decoration:none;border-bottom:1px solid currentColor}
+.doclink:hover{color:var(--ink)}
+/* documents */
+.docs{margin-top:26px;padding-top:16px;border-top:1px solid var(--hair)}
+.docs h2{font-family:var(--display);font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin:0 0 4px}
+.docs p.lead{margin:0 0 12px;color:var(--ink-soft);max-width:62ch}
+.doclist{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;list-style:none;margin:0;padding:0}
+.doclist a{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:center;background:var(--card);border:1px solid var(--hair);border-radius:6px;padding:10px 12px;color:inherit;text-decoration:none;min-width:0}
+.doclist a:hover{border-color:var(--route)} .doclist a:focus-visible{outline:3px solid var(--route);outline-offset:2px}
+.doclist .ic{width:28px;height:34px;border:1.5px solid var(--line);border-radius:3px;position:relative;background:var(--paper)}
+.doclist .ic::after{content:"PDF";position:absolute;left:0;right:0;bottom:3px;text-align:center;font-family:var(--display);font-size:9px;font-weight:700;letter-spacing:.06em;color:var(--route)}
+.doclist .t{font-family:var(--display);font-weight:600;font-size:16px;line-height:1.05} .doclist .d{font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-top:2px}
+.doclist a.pack{border-color:var(--route);background:var(--card)} .doclist a.pack .ic{border-color:var(--route)}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>The <em>Foliage</em> Run</h1>
+      <div class="who">Ankur &amp; Krupa · 16 – 27 October 2026 · New York → Hudson Valley → Berkshires → Vermont → New York</div>
+    </div>
+    <div class="controls">
+      <button class="btn" id="drive" type="button"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1l8 4-8 4z"/></svg><span>Drive it</span></button>
+      <div class="scrub"><label for="day">Day</label><input id="day" type="range" min="0" max="11" value="0" step="1"><output id="dayOut" for="day">Fri 16 Oct</output></div>
+      <button class="theme" id="theme" type="button" aria-label="Switch theme"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg><span id="themeLbl">Auto</span></button>
+    </div>
+  </header>
+
+  <div class="plate">
+    <div class="mapbox" id="mapbox">
+      <svg id="atlas" viewBox="0 0 860 834" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustrated map of the route from New York up the Hudson Valley to the Berkshires and Vermont and back">
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" class="hatch"/></pattern></defs>
+<rect class="land" x="0" y="0" width="860" height="834"/>
+<path class="relief" d="M80.0,430.7 C100.0,428.4 176.7,435.1 200.0,417.2 C223.3,399.2 230.0,347.7 220.0,323.0 C210.0,298.3 166.7,269.2 140.0,269.2 C113.3,269.2 73.3,314.0 60.0,323.0 Z"/>
+<path class="relief" d="M310.0,376.9 C325.0,372.4 383.3,376.8 400.0,349.9 C416.7,323.0 423.3,237.7 410.0,215.3 C396.7,192.9 335.0,215.3 320.0,215.3 Z"/>
+<path class="relief" d="M370.0,193.8 C383.3,192.9 435.0,220.7 450.0,188.4 C465.0,156.1 473.3,31.4 460.0,0.0 C446.7,-31.4 385.0,0.0 370.0,0.0 Z"/>
+<path class="relief" d="M600.0,40.4 C626.7,42.6 730.0,60.5 760.0,53.8 C790.0,47.1 810.0,9.0 780.0,0.0 C750.0,-9.0 613.3,0.0 580.0,0.0 Z"/>
+<path class="water" d="M216.0,726.8 C221.7,724.1 239.3,717.3 250.0,710.6 C260.7,703.9 268.3,694.9 280.0,686.4 C291.7,677.9 303.3,668.5 320.0,659.5 C336.7,650.5 363.3,641.6 380.0,632.6 C396.7,623.6 400.0,611.1 420.0,605.7 C440.0,600.3 473.3,603.4 500.0,600.3 C526.7,597.1 558.3,590.4 580.0,586.8 C601.7,583.2 608.3,584.5 630.0,578.7 C651.7,572.9 685.0,558.5 710.0,551.8 C735.0,545.1 761.7,546.0 780.0,538.4 C798.3,530.8 810.0,524.1 820.0,506.1 C830.0,488.2 840.0,456.7 840.0,430.7 C840.0,404.7 826.7,370.1 820.0,349.9 C813.3,329.7 798.7,323.1 800.0,309.6 C801.3,296.2 818.0,282.7 828.0,269.2 C838.0,255.7 854.7,134.6 860.0,228.8 C865.3,323.0 978.3,733.5 860.0,834.5 C741.7,935.5 260.7,837.6 150.0,834.5 C39.3,831.4 189.3,824.6 196.0,815.6 C202.7,806.6 189.3,790.0 190.0,780.6 C190.7,771.2 197.7,763.6 200.0,759.1 C202.3,754.6 203.3,754.6 204.0,753.7 Z"/>
+<path class="land" d="M204.0,786.0 C211.7,785.1 230.7,782.4 250.0,780.6 C269.3,778.8 295.0,779.7 320.0,775.2 C345.0,770.7 373.3,761.8 400.0,753.7 C426.7,745.6 453.3,738.0 480.0,726.8 C506.7,715.6 536.7,698.1 560.0,686.4 C583.3,674.7 620.0,663.5 620.0,656.8 C620.0,650.1 580.0,644.2 560.0,646.0 C540.0,647.8 523.3,661.3 500.0,667.6 C476.7,673.9 446.7,679.7 420.0,683.7 C393.3,687.7 363.3,689.1 340.0,691.8 C316.7,694.5 296.7,695.4 280.0,699.9 C263.3,704.4 251.0,713.3 240.0,718.7 C229.0,724.1 219.0,726.4 214.0,732.2 C209.0,738.0 210.7,750.1 210.0,753.7 Z"/>
+<path class="river" d="M196.0,753.7 C197.3,747.0 201.0,726.8 204.0,713.3 C207.0,699.8 213.0,688.6 214.0,672.9 C215.0,657.2 211.3,632.5 210.0,619.1 C208.7,605.7 206.3,602.1 206.0,592.2 C205.7,582.3 209.0,568.9 208.0,559.9 C207.0,550.9 199.7,546.5 200.0,538.4 C200.3,530.3 208.0,521.3 210.0,511.4 C212.0,501.5 212.0,492.6 212.0,479.1 C212.0,465.7 207.7,447.7 210.0,430.7 C212.3,413.7 221.0,392.6 226.0,376.9 C231.0,361.2 236.0,352.2 240.0,336.5 C244.0,320.8 248.3,300.6 250.0,282.6 C251.7,264.7 248.3,246.7 250.0,228.8 C251.7,210.9 256.7,195.2 260.0,175.0 C263.3,154.8 266.7,136.9 270.0,107.7 C273.3,78.5 278.3,17.9 280.0,0.0"/>
+<path class="river thin" d="M508.0,207.3 C507.7,199.7 505.0,178.1 506.0,161.5 C507.0,144.9 511.7,125.7 514.0,107.7 C516.3,89.8 518.3,71.8 520.0,53.8 C521.7,35.8 523.3,9.0 524.0,0.0"/>
+<path class="border" d="M220.0,675.6 L60.0,576.0"/>
+<path class="border" d="M268.0,672.9 L304.0,619.1 L302.0,390.3"/>
+<path class="border" d="M302.0,390.3 L640.0,395.7"/>
+<path class="border" d="M640.0,395.7 L628.0,578.7"/>
+<path class="border" d="M302.0,390.3 L348.0,201.9"/>
+<path class="border" d="M348.0,201.9 L508.0,207.3"/>
+<path class="border" d="M508.0,207.3 L800.0,215.3 L836.0,169.6"/>
+<path class="border" d="M348.0,201.9 L340.0,0.0"/>
+<path class="border" d="M640.0,395.7 L720.0,398.4 L724.0,430.7 L772.0,479.1 L776.0,538.4"/>
+<text class="lbl state" x="90.0" y="403.8" text-anchor="middle">NEW YORK</text>
+<text class="lbl state" x="450.0" y="489.9" text-anchor="middle">CONNECTICUT</text>
+<text class="lbl state" x="550.0" y="301.5" text-anchor="middle">MASSACHUSETTS</text>
+<text class="lbl state" x="456.0" y="86.1" text-anchor="middle">VERMONT</text>
+<text class="lbl state" x="680.0" y="113.1" text-anchor="middle">NEW HAMPSHIRE</text>
+<text class="lbl state" x="90.0" y="748.3" text-anchor="middle">NEW JERSEY</text>
+<text class="lbl state" x="690.0" y="479.1" text-anchor="middle">R.I.</text>
+<text class="lbl water" x="420.0" y="659.5" text-anchor="middle">Long Island Sound</text>
+<text class="lbl water" x="540.0" y="780.6" text-anchor="middle">Atlantic Ocean</text>
+<text class="lbl river" x="172.0" y="503.4" text-anchor="middle">Hudson River</text>
+<text class="lbl hills" x="96.0" y="301.5" text-anchor="middle">CATSKILLS</text>
+<text class="lbl hills" x="364.0" y="282.6" text-anchor="middle">BERKSHIRES</text>
+<text class="lbl hills" x="414.0" y="53.8" text-anchor="middle">GREEN MOUNTAINS</text>
+<text class="lbl hills" x="690.0" y="21.5" text-anchor="middle">WHITE MOUNTAINS</text>
+<g class="city"><circle cx="248.0" cy="228.8" r="2.6"/><text x="254.0" y="232.3">Albany</text></g>
+<g class="city"><circle cx="788.0" cy="306.9" r="2.6"/><text x="794.0" y="310.4">Boston</text></g>
+<g class="city"><circle cx="464.0" cy="468.4" r="2.6"/><text x="470.0" y="471.9">Hartford</text></g>
+<g class="city"><circle cx="718.0" cy="452.2" r="2.6"/><text x="724.0" y="455.7">Providence</text></g>
+<g class="city"><circle cx="414.0" cy="589.5" r="2.6"/><text x="420.0" y="593.0">New Haven</text></g>
+<g class="city"><circle cx="214.0" cy="484.5" r="2.6"/><text x="220.0" y="488.0">Poughkeepsie</text></g>
+<g class="scale"><line x1="36" y1="800" x2="157" y2="800"/><line x1="36" y1="795" x2="36" y2="805"/><line x1="157" y1="795" x2="157" y2="805"/><text x="97" y="791" text-anchor="middle">50 km</text></g>
+<g class="compass" transform="translate(814,54)"><circle r="18"/><path d="M0,-16 L5,0 L0,-4 L-5,0 Z"/><text y="-22" text-anchor="middle">N</text></g>
+<path class="taxi" d="M244.0,769.9 C241.7,769.0 235.7,767.2 230.0,764.5 C224.3,761.8 215.3,755.7 210.0,753.7 C204.7,751.7 200.0,752.6 198.0,752.4"/>
+<path id="master" class="route-under" d="M198.0,752.4 C198.7,749.0 200.0,738.7 202.0,732.2 C204.0,725.7 209.0,720.9 210.0,713.3 C211.0,705.7 208.7,697.6 208.0,686.4 C207.3,675.2 207.0,659.5 206.0,646.0 C205.0,632.5 203.0,615.6 202.0,605.7 C201.0,595.8 202.3,594.4 200.0,586.8 C197.7,579.2 188.3,565.3 188.0,559.9 C187.7,554.5 194.5,554.5 198.0,554.5 C201.5,554.5 207.2,559.0 209.0,559.9 L209.0,559.9 C208.2,554.1 206.2,539.7 204.0,524.9 C201.8,510.1 198.3,489.1 196.0,471.1 C193.7,453.2 191.3,436.9 190.0,417.2 C188.7,397.4 188.0,352.6 188.0,352.6 C188.0,352.6 188.7,397.4 190.0,417.2 C191.3,436.9 193.7,453.2 196.0,471.1 C198.3,489.1 201.8,510.1 204.0,524.9 C206.2,539.7 208.2,554.1 209.0,559.9 L209.0,559.9 C212.5,551.8 224.2,530.7 230.0,511.4 C235.8,492.1 237.3,464.3 244.0,444.1 C250.7,423.9 259.0,408.2 270.0,390.3 C281.0,372.4 297.8,350.3 310.0,336.5 C322.2,322.7 337.5,312.5 343.0,307.7 L343.0,307.7 C344.2,301.3 346.0,281.8 350.0,269.2 C354.0,256.6 366.8,232.3 366.8,232.3 C366.8,232.3 354.0,256.6 350.0,269.2 C346.0,281.8 344.2,301.3 343.0,307.7 L343.0,307.7 C344.8,299.0 351.2,271.5 354.0,255.7 C356.8,239.9 359.0,227.5 360.0,212.7 C361.0,197.9 357.3,180.8 360.0,166.9 C362.7,153.0 371.7,141.9 376.0,129.2 C380.3,116.5 384.3,97.1 386.0,90.7 L386.0,90.7 C384.3,90.4 377.0,92.2 376.0,88.8 C375.0,85.3 377.7,72.2 380.0,70.0 C382.3,67.8 389.0,72.0 390.0,75.4 C391.0,78.9 386.7,88.2 386.0,90.7 L386.0,90.7 C390.0,95.8 399.3,110.2 410.0,121.1 C420.7,132.0 437.0,147.1 450.0,156.1 C463.0,165.1 472.3,175.4 488.0,175.0 C503.7,174.6 522.0,153.4 544.0,153.4 C566.0,153.4 594.0,169.2 620.0,175.0 C646.0,180.8 676.7,185.7 700.0,188.4 C723.3,191.1 755.0,182.1 760.0,191.1 C765.0,200.1 738.3,218.1 730.0,242.3 C721.7,266.5 712.3,307.4 710.0,336.5 C707.7,365.6 716.0,394.8 716.0,417.2 C716.0,439.6 724.3,448.7 710.0,471.1 C695.7,493.5 651.7,533.9 630.0,551.8 C608.3,569.7 615.0,572.0 580.0,578.7 C545.0,585.4 466.7,580.1 420.0,592.2 C373.3,604.3 332.7,631.7 300.0,651.4 C267.3,671.1 239.7,697.1 224.0,710.6 C208.3,724.1 210.3,725.2 206.0,732.2 C201.7,739.2 199.3,749.0 198.0,752.4"/>
+<path class="route drive" data-day="19 Oct" d="M198.0,752.4 C198.7,749.0 200.0,738.7 202.0,732.2 C204.0,725.7 209.0,720.9 210.0,713.3 C211.0,705.7 208.7,697.6 208.0,686.4 C207.3,675.2 207.0,659.5 206.0,646.0 C205.0,632.5 203.0,615.6 202.0,605.7 C201.0,595.8 202.3,594.4 200.0,586.8 C197.7,579.2 188.3,565.3 188.0,559.9 C187.7,554.5 194.5,554.5 198.0,554.5 C201.5,554.5 207.2,559.0 209.0,559.9"/>
+<path class="route spur" data-day="20 Oct" d="M209.0,559.9 C208.2,554.1 206.2,539.7 204.0,524.9 C201.8,510.1 198.3,489.1 196.0,471.1 C193.7,453.2 191.3,436.9 190.0,417.2 C188.7,397.4 188.0,352.6 188.0,352.6 C188.0,352.6 188.7,397.4 190.0,417.2 C191.3,436.9 193.7,453.2 196.0,471.1 C198.3,489.1 201.8,510.1 204.0,524.9 C206.2,539.7 208.2,554.1 209.0,559.9"/>
+<path class="route drive" data-day="21 Oct" d="M209.0,559.9 C212.5,551.8 224.2,530.7 230.0,511.4 C235.8,492.1 237.3,464.3 244.0,444.1 C250.7,423.9 259.0,408.2 270.0,390.3 C281.0,372.4 297.8,350.3 310.0,336.5 C322.2,322.7 337.5,312.5 343.0,307.7"/>
+<path class="route spur" data-day="22 Oct" d="M343.0,307.7 C344.2,301.3 346.0,281.8 350.0,269.2 C354.0,256.6 366.8,232.3 366.8,232.3 C366.8,232.3 354.0,256.6 350.0,269.2 C346.0,281.8 344.2,301.3 343.0,307.7"/>
+<path class="route drive" data-day="23 Oct" d="M343.0,307.7 C344.8,299.0 351.2,271.5 354.0,255.7 C356.8,239.9 359.0,227.5 360.0,212.7 C361.0,197.9 357.3,180.8 360.0,166.9 C362.7,153.0 371.7,141.9 376.0,129.2 C380.3,116.5 384.3,97.1 386.0,90.7"/>
+<path class="route spur" data-day="24 Oct" d="M386.0,90.7 C384.3,90.4 377.0,92.2 376.0,88.8 C375.0,85.3 377.7,72.2 380.0,70.0 C382.3,67.8 389.0,72.0 390.0,75.4 C391.0,78.9 386.7,88.2 386.0,90.7"/>
+<path class="route drive" data-day="25 Oct" d="M386.0,90.7 C390.0,95.8 399.3,110.2 410.0,121.1 C420.7,132.0 437.0,147.1 450.0,156.1 C463.0,165.1 472.3,175.4 488.0,175.0 C503.7,174.6 522.0,153.4 544.0,153.4 C566.0,153.4 594.0,169.2 620.0,175.0 C646.0,180.8 676.7,185.7 700.0,188.4 C723.3,191.1 755.0,182.1 760.0,191.1 C765.0,200.1 738.3,218.1 730.0,242.3 C721.7,266.5 712.3,307.4 710.0,336.5 C707.7,365.6 716.0,394.8 716.0,417.2 C716.0,439.6 724.3,448.7 710.0,471.1 C695.7,493.5 651.7,533.9 630.0,551.8 C608.3,569.7 615.0,572.0 580.0,578.7 C545.0,585.4 466.7,580.1 420.0,592.2 C373.3,604.3 332.7,631.7 300.0,651.4 C267.3,671.1 239.7,697.1 224.0,710.6 C208.3,724.1 210.3,725.2 206.0,732.2 C201.7,739.2 199.3,749.0 198.0,752.4"/>
+<path class="route-dash" d="M198.0,752.4 C198.7,749.0 200.0,738.7 202.0,732.2 C204.0,725.7 209.0,720.9 210.0,713.3 C211.0,705.7 208.7,697.6 208.0,686.4 C207.3,675.2 207.0,659.5 206.0,646.0 C205.0,632.5 203.0,615.6 202.0,605.7 C201.0,595.8 202.3,594.4 200.0,586.8 C197.7,579.2 188.3,565.3 188.0,559.9 C187.7,554.5 194.5,554.5 198.0,554.5 C201.5,554.5 207.2,559.0 209.0,559.9 L209.0,559.9 C208.2,554.1 206.2,539.7 204.0,524.9 C201.8,510.1 198.3,489.1 196.0,471.1 C193.7,453.2 191.3,436.9 190.0,417.2 C188.7,397.4 188.0,352.6 188.0,352.6 C188.0,352.6 188.7,397.4 190.0,417.2 C191.3,436.9 193.7,453.2 196.0,471.1 C198.3,489.1 201.8,510.1 204.0,524.9 C206.2,539.7 208.2,554.1 209.0,559.9 L209.0,559.9 C212.5,551.8 224.2,530.7 230.0,511.4 C235.8,492.1 237.3,464.3 244.0,444.1 C250.7,423.9 259.0,408.2 270.0,390.3 C281.0,372.4 297.8,350.3 310.0,336.5 C322.2,322.7 337.5,312.5 343.0,307.7 L343.0,307.7 C344.2,301.3 346.0,281.8 350.0,269.2 C354.0,256.6 366.8,232.3 366.8,232.3 C366.8,232.3 354.0,256.6 350.0,269.2 C346.0,281.8 344.2,301.3 343.0,307.7 L343.0,307.7 C344.8,299.0 351.2,271.5 354.0,255.7 C356.8,239.9 359.0,227.5 360.0,212.7 C361.0,197.9 357.3,180.8 360.0,166.9 C362.7,153.0 371.7,141.9 376.0,129.2 C380.3,116.5 384.3,97.1 386.0,90.7 L386.0,90.7 C384.3,90.4 377.0,92.2 376.0,88.8 C375.0,85.3 377.7,72.2 380.0,70.0 C382.3,67.8 389.0,72.0 390.0,75.4 C391.0,78.9 386.7,88.2 386.0,90.7 L386.0,90.7 C390.0,95.8 399.3,110.2 410.0,121.1 C420.7,132.0 437.0,147.1 450.0,156.1 C463.0,165.1 472.3,175.4 488.0,175.0 C503.7,174.6 522.0,153.4 544.0,153.4 C566.0,153.4 594.0,169.2 620.0,175.0 C646.0,180.8 676.7,185.7 700.0,188.4 C723.3,191.1 755.0,182.1 760.0,191.1 C765.0,200.1 738.3,218.1 730.0,242.3 C721.7,266.5 712.3,307.4 710.0,336.5 C707.7,365.6 716.0,394.8 716.0,417.2 C716.0,439.6 724.3,448.7 710.0,471.1 C695.7,493.5 651.7,533.9 630.0,551.8 C608.3,569.7 615.0,572.0 580.0,578.7 C545.0,585.4 466.7,580.1 420.0,592.2 C373.3,604.3 332.7,631.7 300.0,651.4 C267.3,671.1 239.7,697.1 224.0,710.6 C208.3,724.1 210.3,725.2 206.0,732.2 C201.7,739.2 199.3,749.0 198.0,752.4"/>
+<g class="shield" transform="translate(204.0,627.2)"><rect x="-17.4" y="-8" width="34.8" height="16" rx="3"/><text y="4" text-anchor="middle">I-87</text></g>
+<g class="shield" transform="translate(176.0,471.1)"><rect x="-20.5" y="-8" width="41.0" height="16" rx="3"/><text y="4" text-anchor="middle">US 9W</text></g>
+<g class="shield" transform="translate(340.0,263.8)"><rect x="-17.4" y="-8" width="34.8" height="16" rx="3"/><text y="4" text-anchor="middle">MA 2</text></g>
+<g class="shield" transform="translate(430.0,148.0)"><rect x="-20.5" y="-8" width="41.0" height="16" rx="3"/><text y="4" text-anchor="middle">VT 30</text></g>
+<g class="shield" transform="translate(490.0,613.7)"><rect x="-17.4" y="-8" width="34.8" height="16" rx="3"/><text y="4" text-anchor="middle">I-95</text></g>
+<g class="shield" transform="translate(700.0,296.1)"><rect x="-20.5" y="-8" width="41.0" height="16" rx="3"/><text y="4" text-anchor="middle">I-495</text></g>
+<g class="wp"><circle cx="188.0" cy="559.9" r="4.2"/><text x="180.0" y="563.4" text-anchor="end">Storm King</text></g>
+<g class="wp"><circle cx="188.0" cy="352.6" r="4.2"/><text x="180.0" y="356.1" text-anchor="end">Kaaterskill Falls</text></g>
+<g class="wp"><circle cx="366.8" cy="232.3" r="4.2"/><text x="374.8" y="235.8" text-anchor="start">Mount Greylock</text></g>
+<g class="wp"><circle cx="376.0" cy="80.8" r="4.2"/><text x="368.0" y="84.3" text-anchor="end">Mount Equinox</text></g>
+<g class="wp"><circle cx="760.0" cy="191.1" r="4.2"/><text x="768.0" y="194.6" text-anchor="start">Salem, N.H.</text></g>
+<g class="jfk" transform="translate(244.0,769.9)"><circle r="7"/><path d="M-4,0 L4,0 M0,-4 L0,4 M-2.5,-2.5 L2.5,2.5" transform="rotate(45)"/><text x="11" y="4">JFK · in 17 · out 26</text></g>
+<g class="stay" data-stay="nyc1" tabindex="0" role="button" aria-label="New York" transform="translate(198.0,752.4)"><circle class="halo" r="16"/><circle class="pin" r="10"/><text class="num" y="4" text-anchor="middle">1</text><text class="name" x="16" y="-6">New York</text><text class="sub" x="16" y="7">Financial District</text></g>
+<g class="stay" data-stay="cold" tabindex="0" role="button" aria-label="Cold Spring" transform="translate(209.0,559.9)"><circle class="halo" r="16"/><circle class="pin" r="10"/><text class="num" y="4" text-anchor="middle">2</text><text class="name" x="16" y="-6">Cold Spring</text><text class="sub" x="16" y="7">Hudson Valley, NY</text></g>
+<g class="stay" data-stay="lenox" tabindex="0" role="button" aria-label="Lenox" transform="translate(343.0,307.7)"><circle class="halo" r="16"/><circle class="pin" r="10"/><text class="num" y="4" text-anchor="middle">3</text><text class="name" x="16" y="-6">Lenox</text><text class="sub" x="16" y="7">The Berkshires, MA</text></g>
+<g class="stay" data-stay="manch" tabindex="0" role="button" aria-label="Manchester" transform="translate(386.0,90.7)"><circle class="halo" r="16"/><circle class="pin" r="10"/><text class="num" y="4" text-anchor="middle">4</text><text class="name" x="16" y="-6">Manchester</text><text class="sub" x="16" y="7">Vermont</text></g>
+<g id="car" class="car" style="display:none"><rect x="-9" y="-5" width="18" height="10" rx="3"/><rect x="-4" y="-4" width="7" height="8" rx="1.5" class="glass"/><circle cx="-5" cy="6" r="2"/><circle cx="5" cy="6" r="2"/><circle cx="-5" cy="-6" r="2"/><circle cx="5" cy="-6" r="2"/></g>
+</svg>
+      <div class="hud" id="hud"><b id="hudWhere">Ahmedabad</b><span id="hudNote">Fri 16 Oct · wheels up 17:55</span><br><span class="km" id="hudKm"></span></div>
+    </div>
+
+    <aside class="margin">
+      <h2>Where we sleep</h2>
+      <div class="row air"><span class="n">✈</span><div><div class="t">Land at JFK</div><div class="d">Sat 17 Oct · 08:20</div></div><span class="nt">AI 119</span></div>
+      <button class="row" type="button" data-stay="nyc1"><span class="n">1</span><div style="min-width:0"><div class="t">New York</div><div class="d">Sat 17 – Mon 19 Oct</div></div><span class="nt">2 nights</span></button>
+      <div class="card" data-card="nyc1"><img src="nyc.jpg" alt="Central Park in autumn" loading="lazy"><div class="body"><p class="blurb">Two days on foot before the car.</p><p class="hotel">Little Something</p><p class="addr">5 Platt Street, Financial District</p><div class="refline"><span class="k">Agoda booking</span><code>2052229207</code><button class="copy" type="button" data-copy="2052229207">Copy</button></div><a class="doclink" href="03-little-something-2052229207.pdf" target="_blank" rel="noopener">Open the booking confirmation ↗</a></div></div><button class="row car" type="button" data-stay="car"><span class="n"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1a2 2 0 1 1-4 0H9a2 2 0 1 1-4 0H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h1zm2.1 0h9.8l-1-3H8.1l-1 3z"/></svg></span><div style="min-width:0"><div class="t">Collect the car</div><div class="d">Mon 19 Oct · 09:00 · Battery Park</div></div><span class="nt">7 days</span></button>
+      <div class="card" data-card="car"><div class="body"><p class="blurb">Walk down to Battery Park with nothing to carry, drive back to the hotel door, then north up the Hudson.</p><p class="hotel">Sixt — Battery Park</p><p class="addr">20 Morris Street, Manhattan · BMW X3 or similar · return here Sun 25 Oct by 18:30</p><div class="refline"><span class="k">Reservation</span><code>9739595567</code><button class="copy" type="button" data-copy="9739595567">Copy</button></div><a class="doclink" href="08-sixt-car-9739595567.pdf" target="_blank" rel="noopener">Open the rental confirmation ↗</a></div></div>
+      <button class="row" type="button" data-stay="cold"><span class="n">2</span><div style="min-width:0"><div class="t">Cold Spring</div><div class="d">Mon 19 – Wed 21 Oct</div></div><span class="nt">2 nights</span></button>
+      <div class="card" data-card="cold"><img src="coldspring.jpg" alt="Storm King Art Center" loading="lazy"><div class="body"><p class="blurb">Storm King on the way in; the Catskills the next day.</p><p class="hotel">Airbnb — Eva Maria's apartment</p><p class="addr">Main Street village, on the Hudson</p><div class="refline"><span class="k">Airbnb confirmation</span><code>HMAZBNMXS8</code><button class="copy" type="button" data-copy="HMAZBNMXS8">Copy</button></div><a class="doclink" href="04-airbnb-cold-spring-HMAZBNMXS8.pdf" target="_blank" rel="noopener">Open the booking confirmation ↗</a></div></div><button class="row" type="button" data-stay="lenox"><span class="n">3</span><div style="min-width:0"><div class="t">Lenox</div><div class="d">Wed 21 – Fri 23 Oct</div></div><span class="nt">2 nights</span></button>
+      <div class="card" data-card="lenox"><img src="lenox.jpg" alt="View from Mount Greylock" loading="lazy"><div class="body"><p class="blurb">The Berkshires at peak colour. Greylock on the Thursday.</p><p class="hotel">Garden Gables</p><p class="addr">135 Main Street, Lenox MA</p><div class="refline"><span class="k">Confirmation</span><code>1166</code><button class="copy" type="button" data-copy="1166">Copy</button></div><a class="doclink" href="05-garden-gables-1166.pdf" target="_blank" rel="noopener">Open the booking confirmation ↗</a></div></div><button class="row" type="button" data-stay="manch"><span class="n">4</span><div style="min-width:0"><div class="t">Manchester</div><div class="d">Fri 23 – Sun 25 Oct</div></div><span class="nt">2 nights</span></button>
+      <div class="card" data-card="manch"><img src="manchester.jpg" alt="A Vermont lake in autumn" loading="lazy"><div class="body"><p class="blurb">Vermont. Mount Equinox, covered bridges, cider.</p><p class="hotel">Aspen at Manchester</p><p class="addr">5669 Main Street, Manchester Center VT</p><div class="refline"><span class="k">Confirmation</span><code>1104831463</code><button class="copy" type="button" data-copy="1104831463">Copy</button></div><a class="doclink" href="06-aspen-manchester-1104831463.pdf" target="_blank" rel="noopener">Open the booking confirmation ↗</a></div></div><button class="row" type="button" data-stay="nyc2"><span class="n">5</span><div style="min-width:0"><div class="t">New York</div><div class="d">Sun 25 – Mon 26 Oct</div></div><span class="nt">1 night</span></button>
+      <div class="card" data-card="nyc2"><img src="home.jpg" alt="An autumn road" loading="lazy"><div class="body"><p class="blurb">Back the same evening. Flight home at 11:05.</p><p class="hotel">Placemakr Wall Street</p><p class="addr">110 Wall Street, Financial District</p><div class="refline"><span class="k">Agoda booking</span><code>2052236412</code><button class="copy" type="button" data-copy="2052236412">Copy</button></div><a class="doclink" href="07-placemakr-wall-street-2052236412.pdf" target="_blank" rel="noopener">Open the booking confirmation ↗</a></div></div>
+      <div class="row air"><span class="n">✈</span><div><div class="t">Fly home</div><div class="d">Mon 26 Oct · 11:05 from JFK</div></div><span class="nt">AI 116</span></div>
+    </aside>
+  </div>
+
+  <section class="docs" id="docs">
+    <h2>The paperwork</h2>
+    <p class="lead">Every original confirmation, as issued. The first one is the whole set in a single file for showing at the airport — summary first, then each document in trip order.</p>
+    <ul class="doclist">
+      <li><a class="pack" href="00-US-Trip-Documents-Bhatt.pdf" target="_blank" rel="noopener"><span class="ic"></span><span><span class="t">Everything, one file</span><span class="d">itinerary + all 8 confirmations</span></span></a></li>
+      <li><a href="01-flight-ankur-8K8WX6.pdf" target="_blank" rel="noopener"><span class="ic"></span><span><span class="t">Flights — Ankur</span><span class="d">Air India 8K8WX6</span></span></a></li>
+      <li><a href="02-flight-krupa-8K58XE.pdf" target="_blank" rel="noopener"><span class="ic"></span><span><span class="t">Flights — Krupa</span><span class="d">Air India 8K58XE</span></span></a></li>
+      <li><a href="03-little-something-2052229207.pdf" target="_blank" rel="noopener"><span class="ic"></span><span><span class="t">Little Something</span><span class="d">17–19 Oct · Agoda 2052229207</span></span></a></li>
+      <li><a href="04-airbnb-cold-spring-HMAZBNMXS8.pdf" target="_blank" rel="noopener"><span class="ic"></span><span><span class="t">Airbnb, Cold Spring</span><span class="d">19–21 Oct · HMAZBNMXS8</span></span></a></li>
+      <li><a href="05-garden-gables-1166.pdf" target="_blank" rel="noopener"><span class="ic"></span><span><span class="t">Garden Gables</span><span class="d">21–23 Oct · 1166</span></span></a></li>
+      <li><a href="06-aspen-manchester-1104831463.pdf" target="_blank" rel="noopener"><span class="ic"></span><span><span class="t">Aspen at Manchester</span><span class="d">23–25 Oct · 1104831463</span></span></a></li>
+      <li><a href="07-placemakr-wall-street-2052236412.pdf" target="_blank" rel="noopener"><span class="ic"></span><span><span class="t">Placemakr Wall Street</span><span class="d">25–26 Oct · Agoda 2052236412</span></span></a></li>
+      <li><a href="08-sixt-car-9739595567.pdf" target="_blank" rel="noopener"><span class="ic"></span><span><span class="t">Sixt hire car</span><span class="d">19–25 Oct · 9739595567</span></span></a></li>
+    </ul>
+  </section>
+
+  <div class="odo">
+    <span><b>1,375</b>km of driving</span><span><b>4</b>states</span><span><b>9</b>nights</span><span><b>10</b>days in America</span><span><b>5</b>mountains</span>
+  </div>
+</div>
+
+<script>
+(function(){
+  var DAYS = [{"d": "Fri 16 Oct", "where": "In the air", "note": "Ahmedabad \u2192 Mumbai \u2192 New York overnight", "stay": null, "leg": null}, {"d": "Sat 17 Oct", "where": "New York", "note": "Land at JFK 08:20. Lower Manhattan on foot.", "stay": "nyc1", "leg": null}, {"d": "Sun 18 Oct", "where": "New York", "note": "Central Park, Midtown, the subway.", "stay": "nyc1", "leg": null}, {"d": "Mon 19 Oct", "where": "Cold Spring", "note": "Collect the car 09:00. Storm King, then over the river.", "stay": "cold", "leg": 0}, {"d": "Tue 20 Oct", "where": "Cold Spring", "note": "Up into the Catskills for Kaaterskill Falls.", "stay": "cold", "leg": 1}, {"d": "Wed 21 Oct", "where": "Lenox", "note": "East across the state line into the Berkshires.", "stay": "lenox", "leg": 2}, {"d": "Thu 22 Oct", "where": "Lenox", "note": "Mount Greylock summit and the Mohawk Trail.", "stay": "lenox", "leg": 3}, {"d": "Fri 23 Oct", "where": "Manchester", "note": "North into Vermont.", "stay": "manch", "leg": 4}, {"d": "Sat 24 Oct", "where": "Manchester", "note": "Mount Equinox and the back roads.", "stay": "manch", "leg": 5}, {"d": "Sun 25 Oct", "where": "New York", "note": "The long drive home. Car back by 18:30.", "stay": "nyc2", "leg": 6}, {"d": "Mon 26 Oct", "where": "In the air", "note": "JFK 11:05 \u2192 Mumbai.", "stay": null, "leg": null}, {"d": "Tue 27 Oct", "where": "Home", "note": "Ahmedabad 16:50.", "stay": null, "leg": null}];
+  var LEGKM = [120, 230, 175, 110, 120, 90, 530];
+  var svg = document.getElementById('atlas'), master = document.getElementById('master'), car = document.getElementById('car');
+  var legs = Array.prototype.slice.call(svg.querySelectorAll('.route'));
+  var total = master.getTotalLength();
+  // cumulative start/end length of each leg along the master path
+  var bounds = [], acc = 0;
+  legs.forEach(function(l){ var L = l.getTotalLength(); bounds.push([acc, acc + L]); acc += L; });
+  var scaleFix = total / acc; bounds = bounds.map(function(b){ return [b[0]*scaleFix, b[1]*scaleFix]; });
+
+  var hudWhere = document.getElementById('hudWhere'), hudNote = document.getElementById('hudNote'), hudKm = document.getElementById('hudKm');
+  var dayIn = document.getElementById('day'), dayOut = document.getElementById('dayOut'), btn = document.getElementById('drive');
+  var mapbox = document.getElementById('mapbox');
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function place(len, show){
+    if(!show){ car.style.display='none'; return; }
+    var p = master.getPointAtLength(len), q = master.getPointAtLength(Math.min(total, len + 2));
+    var ang = Math.atan2(q.y - p.y, q.x - p.x) * 180 / Math.PI;
+    car.style.display = '';
+    car.setAttribute('transform', 'translate(' + p.x.toFixed(1) + ',' + p.y.toFixed(1) + ') rotate(' + ang.toFixed(1) + ')');
+  }
+  function select(id){
+    document.querySelectorAll('.stay').forEach(function(s){ s.classList.toggle('on', s.dataset.stay === (id === 'nyc2' ? 'nyc1' : id)); });
+    document.querySelectorAll('.row[data-stay]').forEach(function(r){ r.classList.toggle('on', r.dataset.stay === id); });
+    document.querySelectorAll('.stay').forEach(function(st){ if (id === 'car') st.classList.toggle('on', st.dataset.stay === 'nyc1'); });
+    document.querySelectorAll('.card').forEach(function(c){ c.classList.toggle('open', c.dataset.card === id); });
+  }
+  function kmThrough(dayIdx){ var k = 0; for (var i = 0; i <= dayIdx; i++){ var lg = DAYS[i].leg; if (lg !== null) k += LEGKM[lg]; } return k; }
+  function showDay(i, frac){
+    var d = DAYS[i]; frac = (frac === undefined) ? 1 : frac;
+    dayIn.value = i; dayOut.textContent = d.d;
+    hudWhere.textContent = d.where; hudNote.textContent = d.d + ' · ' + d.note;
+    var km = kmThrough(i - 1) + (d.leg !== null ? Math.round(LEGKM[d.leg] * frac) : 0);
+    hudKm.textContent = km ? km.toLocaleString('en-IN') + ' km driven' : '';
+    legs.forEach(function(l, j){ l.classList.toggle('lit', d.leg === j); l.classList.toggle('dim', false); });
+    if (d.leg !== null){ var b = bounds[d.leg]; place(b[0] + (b[1]-b[0]) * frac, true); }
+    else if (i >= 3 && i <= 9) place(bounds[6][1], true);
+    else if (i < 3 && i > 0) place(bounds[0][0], true);
+    else place(0, false);
+    if (d.stay) select(d.stay); else select(null);
+  }
+
+  // clicking pins and rows
+  var rowFor = {nyc1:1, cold:3, lenox:5, manch:7, nyc2:9};
+  document.querySelectorAll('.row[data-stay]').forEach(function(r){ if (r.dataset.stay === 'car') return; r.addEventListener('click', function(){ stop(); showDay(rowFor[r.dataset.stay]); }); });
+  document.querySelectorAll('.stay').forEach(function(s){
+    var go = function(){ stop(); var id = s.dataset.stay; showDay(rowFor[id]); };
+    s.addEventListener('click', go);
+    s.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); go(); } });
+  });
+  dayIn.addEventListener('input', function(){ stop(); showDay(+dayIn.value); });
+
+  // the drive
+  var raf = null, running = false;
+  function stop(){ running = false; if (raf) cancelAnimationFrame(raf); raf = null; mapbox.classList.remove('driving'); btn.querySelector('span').textContent = 'Drive it'; btn.querySelector('path').setAttribute('d','M1 1l8 4-8 4z'); }
+  function play(){
+    running = true; mapbox.classList.add('driving'); btn.querySelector('span').textContent = 'Pause'; btn.querySelector('path').setAttribute('d','M1 1h3v8H1zM6 1h3v8H6z');
+    // timeline: each day gets a duration; driving days scale with distance, rest days hold
+    var plan = DAYS.map(function(d){ return d.leg === null ? 900 : Math.max(1400, LEGKM[d.leg] * 9); });
+    if (reduce) plan = plan.map(function(){ return 1100; });
+    var i = 0, t0 = performance.now();
+    function frame(now){
+      if (!running) return;
+      var el = now - t0, dur = plan[i];
+      if (el >= dur){ i++; t0 = now; if (i >= DAYS.length){ showDay(DAYS.length - 1); stop(); return; } el = 0; }
+      showDay(i, reduce ? 1 : Math.min(1, el / dur));
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  btn.addEventListener('click', function(){ if (running) stop(); else { showDay(0); play(); } });
+
+  // car row opens its own card
+  var carRow = document.querySelector('.row[data-stay="car"]');
+  carRow.addEventListener('click', function(){ stop(); showDay(3, 0); select('car'); carRow.classList.add('on'); });
+
+  // copy buttons
+  document.querySelectorAll('.copy').forEach(function(b){
+    b.addEventListener('click', function(){
+      var v = b.dataset.copy, done = function(){ b.textContent = 'Copied'; setTimeout(function(){ b.textContent = 'Copy'; }, 1400); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(done, function(){ fallback(); }); else fallback();
+      function fallback(){ var r = document.createRange(); r.selectNodeContents(b.previousElementSibling); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+    });
+  });
+
+  // theme: auto → light → dark
+  var root = document.documentElement, tBtn = document.getElementById('theme'), tLbl = document.getElementById('themeLbl');
+  var modes = ['auto','light','dark'], mode = 'auto';
+  try { mode = localStorage.getItem('foliage-theme') || 'auto'; } catch(e) {}
+  function applyTheme(){
+    if (mode === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', mode);
+    tLbl.textContent = mode === 'auto' ? 'Auto' : (mode === 'light' ? 'Light' : 'Dark');
+    try { localStorage.setItem('foliage-theme', mode); } catch(e) {}
+  }
+  tBtn.addEventListener('click', function(){ mode = modes[(modes.indexOf(mode) + 1) % 3]; applyTheme(); });
+  if (modes.indexOf(mode) < 0) mode = 'auto';
+  applyTheme();
+
+  showDay(0);
+})();
+</script>
+</body>
+</html>
