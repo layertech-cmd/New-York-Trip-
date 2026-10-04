@@ -1,18 +1,12 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Foliage Run Road Map</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<style>*{box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <style>
 /* Layout: a road-atlas plate (the map) with a margin column of overnight stops; the drive animates along the plate. */
 :root{
   --paper:#EEF0E6; --land:#E2E7D1; --water:#B9D4E2; --relief:#D3DABD; --card:#FBFBF6;
   --ink:#1B241E; --ink-soft:#4E5A50; --ink-faint:#7F8A80; --line:#98A38F; --hair:#CDD3C3;
-  --route:#D0581C; --route-dash:#FFF4E6; --stay:#75203A; --stay-ink:#FFFFFF; --taxi:#8F9A8C;
+  --route:#D0581C; --route-dash:#FFF4E6; --stay:#75203A; --water-ink:#2F6E8E; --stay-ink:#FFFFFF; --taxi:#8F9A8C;
   --display:"Barlow Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
   --body:"Barlow","Helvetica Neue",Arial,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
@@ -20,11 +14,11 @@
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --paper:#131915; --land:#1E2822; --water:#14313D; --relief:#273529; --card:#1A231D;
   --ink:#ECEFE3; --ink-soft:#B0BAA9; --ink-faint:#7E897E; --line:#4E5B4C; --hair:#2E3A31;
-  --route:#F2863F; --route-dash:#3A2414; --stay:#E36A89; --stay-ink:#1A0A10; --taxi:#5E6A5C; color-scheme:dark } }
+  --route:#F2863F; --route-dash:#3A2414; --stay:#E36A89; --stay-ink:#1A0A10; --taxi:#5E6A5C; --water-ink:#7FB8D6; color-scheme:dark } }
 :root[data-theme="dark"]{
   --paper:#131915; --land:#1E2822; --water:#14313D; --relief:#273529; --card:#1A231D;
   --ink:#ECEFE3; --ink-soft:#B0BAA9; --ink-faint:#7E897E; --line:#4E5B4C; --hair:#2E3A31;
-  --route:#F2863F; --route-dash:#3A2414; --stay:#E36A89; --stay-ink:#1A0A10; --taxi:#5E6A5C; color-scheme:dark }
+  --route:#F2863F; --route-dash:#3A2414; --stay:#E36A89; --stay-ink:#1A0A10; --taxi:#5E6A5C; --water-ink:#7FB8D6; color-scheme:dark }
 
 body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
 .wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:22px 40px}
@@ -50,7 +44,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:
 .mapbox svg{display:block;width:100%;height:auto;max-width:100%}
 .hud{position:absolute;right:12px;bottom:12px;text-align:right;background:var(--card);border:1px solid var(--hair);border-radius:6px;padding:8px 11px;font-family:var(--mono);font-size:12px;line-height:1.35;color:var(--ink-soft);pointer-events:none;max-width:min(300px,70%)}
 .hud b{display:block;font-family:var(--display);font-size:20px;letter-spacing:.02em;color:var(--ink);text-transform:uppercase;line-height:1.05;margin-bottom:2px}
-.hud .km{color:var(--route);font-weight:500}
+.hud .km{color:var(--route);font-weight:500} .hud .temp{color:var(--ink);font-weight:500}
 
 /* svg styling via tokens */
 .land{fill:var(--land)} .water{fill:var(--water)} .relief{fill:var(--relief)}
@@ -119,6 +113,93 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:
 .row.car .n svg{width:15px;height:15px;fill:currentColor}
 .doclink{display:inline-block;margin-top:10px;font-family:var(--mono);font-size:12px;color:var(--route);text-decoration:none;border-bottom:1px solid currentColor}
 .doclink:hover{color:var(--ink)}
+/* weather & wear */
+.wx{display:grid;grid-template-columns:minmax(220px,1.1fr) minmax(180px,.9fr) minmax(260px,1.6fr);gap:12px;margin-bottom:12px}
+.sky{position:relative;border-radius:8px;overflow:hidden;min-height:180px;border:1px solid var(--hair)}
+.sky svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.sky .sk1,.sky .sk2{transition:none}
+.sky .sk1{stop-color:#8FC1E5} .sky .sk2{stop-color:#DCEAF3}
+.sky.sun .sk1{stop-color:#5FA6E0} .sky.sun .sk2{stop-color:#F3E3C0}
+.sky.cloud .sk1{stop-color:#7F93A6} .sky.cloud .sk2{stop-color:#C3CDD6}
+.sky.wind .sk1{stop-color:#6E8296} .sky.wind .sk2{stop-color:#BAC4CE}
+.sky.snow .sk1{stop-color:#7A8B9C} .sky.snow .sk2{stop-color:#D6DDE3}
+.sky .sun{transition:opacity .6s} .sky .sun .rays{fill:#F6B73C;opacity:.85;animation:spin 48s linear infinite;transform-origin:0 0}
+.sky .haloc{animation:breathe 5s ease-in-out infinite;transform-origin:0 0}
+.sky.cloud .sun,.sky.wind .sun,.sky.snow .sun{opacity:0}
+.sky .stars circle{fill:#fff;opacity:0} .sky .moon{opacity:0} .sky .moonbite{fill:#121B3A}
+.sky .nightv{fill:#070C1E;opacity:0;pointer-events:none}
+.skyclock{position:absolute;right:10px;top:8px;text-align:right;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);line-height:1.1}
+.skyclock b{display:block;font-family:var(--mono);font-size:18px;font-weight:500;font-variant-numeric:tabular-nums} .skyclock span{font-family:var(--display);font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.9}
+.sky.night .birds path{opacity:0!important} .sky.night .hillcar{opacity:0}
+.sky .birds path{fill:none;stroke:#3A4650;stroke-width:1.2;stroke-linecap:round;opacity:0} .sky.sun .birds path,.sky.partly .birds path{opacity:.7;animation:fly 22s linear infinite}
+.sky .b1{transform:translate(0,46px)} .sky .b2{transform:translate(0,54px);animation-delay:-3s!important} .sky .b3{transform:translate(0,40px);animation-delay:-6s!important}
+.sky .cloud{fill:#FFFFFF;opacity:.95} .sky .cloud.cs{fill:#9FB0BF;opacity:.35;transform:translate(3px,4px)}
+.sky.cloud .cloud,.sky.wind .cloud,.sky.snow .cloud{fill:#E9EEF2}
+.sky .c1{translate:0 0;animation:drift 30s linear infinite} .sky .c2{animation:drift 42s linear infinite;animation-delay:-20s} .sky .c3{animation:drift 52s linear infinite;animation-delay:-8s} .sky .c4{animation:drift 36s linear infinite;animation-delay:-30s}
+.sky .clouds use{transform-box:fill-box}
+.sky .c1{transform:translate(0,58px)} .sky .c2{transform:translate(0,34px) scale(.8)} .sky .c3{transform:translate(0,92px) scale(1.15)} .sky .c4{transform:translate(0,20px) scale(.6)}
+.sky.sun .clouds{opacity:0;transition:opacity .6s} .sky.partly .c3,.sky.partly .c4{opacity:0} .sky.wind .clouds use,.sky.snow .clouds use{animation-duration:12s}
+.sky .wind path{fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;opacity:0;stroke-dasharray:70 260} .sky.wind .wind path{opacity:.75;animation:gust 2.2s linear infinite} .sky.wind .wind path:nth-child(2){animation-delay:.7s} .sky.wind .wind path:nth-child(3){animation-delay:1.4s} .sky.wind .wind path:nth-child(4){animation-delay:.3s;opacity:.5}
+.sky .rain line{stroke:#5E86A8;stroke-width:1.6;stroke-linecap:round;opacity:0} .sky.rain .rain line{opacity:.8;animation:fall .9s linear infinite} .sky.rain .rain line:nth-child(3n){animation-delay:-.3s} .sky.rain .rain line:nth-child(3n+1){animation-delay:-.6s}
+.sky .snow circle{fill:#fff;opacity:0} .sky.snow .snow circle{opacity:.95;animation:snowfall 7s linear infinite} .sky.snow .snow circle:nth-child(odd){animation-duration:9s;animation-delay:-4s} .sky.snow .snow circle:nth-child(3n){animation-duration:11s;animation-delay:-7s}
+.sky .hills .h1{fill:var(--relief)} .sky .hills .h2{fill:color-mix(in srgb,var(--relief) 70%,#fff)} .sky.snow .hills .h1{fill:#DDE3DA} .sky.snow .hills .h2{fill:#EAEEEA}
+.sky .road{fill:none;stroke:#fff;stroke-width:1.2;stroke-dasharray:4 5;opacity:.6}
+.sky .frost circle{fill:#fff;opacity:0} .sky.frosty .frost circle{animation:twinkle 2.4s ease-in-out infinite} .sky.frosty .frost circle:nth-child(2n){animation-delay:-.8s} .sky.frosty .frost circle:nth-child(3n){animation-delay:-1.6s}
+.sky .hillcar{opacity:0} .sky.driving .hillcar{opacity:1} .sky .hc{fill:var(--ink);offset-path:path('M-10,172 Q60,150 130,158 T260,146 T330,152');offset-rotate:auto;animation:ride 14s linear infinite}
+.sky .lf{fill:#D0581C;opacity:0} .sky .l2,.sky .l6{fill:#B8352A} .sky .l3,.sky .l7{fill:#E39A2B} .sky .l4{fill:#9A3B1D} .sky .l5,.sky .l8{fill:#E3C34A}
+.sky .lf{animation:leaf 11s ease-in-out infinite}
+.sky .l1{animation-delay:0s;transform:translate(40px,-14px)} .sky .l2{animation-delay:-1.5s;transform:translate(120px,-14px) scale(.8)} .sky .l3{animation-delay:-3s;transform:translate(200px,-14px)} .sky .l4{animation-delay:-4.5s;transform:translate(280px,-14px) scale(.7)} .sky .l5{animation-delay:-6s;transform:translate(90px,-14px) scale(.9)} .sky .l6{animation-delay:-7.5s;transform:translate(240px,-14px) scale(.75)} .sky .l7{animation-delay:-9s;transform:translate(160px,-14px)} .sky .l8{animation-delay:-10.5s;transform:translate(20px,-14px) scale(.85)}
+.sky.wind .lf{animation-duration:4s} .sky.snow .lf{animation-duration:16s;opacity:.5}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.8}50%{transform:scale(1.15);opacity:1}}
+@keyframes fly{from{translate:-30px 0}to{translate:350px -14px}}
+@keyframes twinkle{0%,100%{opacity:.1}50%{opacity:.9}}
+@keyframes ride{from{offset-distance:0%}to{offset-distance:100%}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes drift{from{translate:-90px 0}to{translate:380px 0}}
+@keyframes gust{from{stroke-dashoffset:260}to{stroke-dashoffset:0}}
+@keyframes fall{from{translate:0 -30px;opacity:0}15%{opacity:.8}to{translate:-10px 60px;opacity:0}}
+@keyframes snowfall{0%{translate:0 -20px}50%{translate:12px 90px}100%{translate:-4px 200px}}
+@keyframes leaf{0%{translate:0 0;rotate:0deg;opacity:0}8%{opacity:1}35%{translate:-26px 70px;rotate:140deg}65%{translate:14px 130px;rotate:250deg}92%{opacity:1}100%{translate:-8px 200px;rotate:380deg;opacity:0}}
+.skylbl{position:absolute;left:10px;bottom:8px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45);line-height:1.15}
+.skylbl b{display:block;font-family:var(--display);font-size:18px;font-weight:700;letter-spacing:.02em} .skylbl span{font-family:var(--mono);font-size:11px}
+.wxnums{background:var(--card);border:1px solid var(--hair);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.wxnums .big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap} .wxnums .hi{font-family:var(--display);font-size:46px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums} .wxnums .lo{font-family:var(--display);font-size:22px;font-weight:600;color:var(--ink-soft)} .wxnums .fl{font-family:var(--mono);font-size:11.5px;color:var(--water-ink);width:100%}
+.wxnums dl{margin:0;display:grid;grid-template-columns:1fr 1fr;gap:5px 10px} .wxnums dl div{display:flex;flex-direction:column} .wxnums dt{font-family:var(--display);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:600} .wxnums dd{margin:0;font-family:var(--mono);font-size:13px;color:var(--ink)}
+.wear{background:var(--card);border:1px solid var(--hair);border-radius:8px;padding:12px 14px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.wear-head{display:flex;align-items:center;justify-content:space-between;gap:10px} .wear-head .k{font-family:var(--display);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+.layers{display:inline-flex;gap:3px} .layers i{width:14px;height:8px;border-radius:2px;background:var(--hair)} .layers i.on{background:var(--route)}
+.garments{display:flex;flex-wrap:wrap;gap:6px}
+.g{display:inline-flex;flex-direction:column;align-items:center;gap:3px;width:62px;padding:7px 4px 6px;border-radius:6px;border:1px solid var(--hair);color:var(--ink-faint);transition:all .25s;opacity:.55}
+.g svg{width:24px;height:24px;fill:currentColor} .g .zip{stroke:var(--card);stroke-width:1.4;fill:none} .g em{font-style:normal;font-family:var(--mono);font-size:9.5px;text-align:center;line-height:1.1}
+.g.on{opacity:1;color:var(--ink);border-color:var(--route);background:var(--paper);transform:translateY(-2px)}
+.g.th.on{border-color:var(--water-ink);background:color-mix(in srgb,var(--water-ink) 12%,var(--card))} .g.th.on svg{color:var(--water-ink)}
+.tip{margin:0;font-size:14px;color:var(--ink);line-height:1.45}
+@media (max-width:900px){ .wx{grid-template-columns:1fr 1fr} .wear{grid-column:1/-1} }
+@media (max-width:520px){ .wx{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){ .sky *{animation:none!important} }
+/* day strip */
+.daystrip{margin-top:22px;padding-top:14px;border-top:1px solid var(--hair)}
+.ds-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;margin-bottom:10px}
+.ds-head h2{font-family:var(--display);font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin:0}
+.ds-note{font-size:12.5px;color:var(--ink-soft);max-width:70ch}
+.ds-row{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:5px}
+.ds{background:var(--card);border:1px solid var(--hair);border-radius:6px;padding:8px 6px 7px;text-align:center;cursor:pointer;color:inherit;font:inherit;min-width:0;display:flex;flex-direction:column;gap:2px;align-items:center;transition:border-color .2s}
+.ds:hover{border-color:var(--line)} .ds.on{border-color:var(--route);box-shadow:inset 0 3px 0 var(--route)} .ds:focus-visible{outline:3px solid var(--route);outline-offset:2px}
+.ds .dd{font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);letter-spacing:.02em}
+.ds .hi{font-family:var(--display);font-size:22px;font-weight:700;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.ds .lo{font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
+.ds .pl{font-size:10.5px;color:var(--ink-faint);line-height:1.15;margin-top:2px}
+.ds .tm{margin-top:4px;font-family:var(--display);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:var(--water-ink);border-radius:3px;padding:1px 5px}
+.ds.cold .hi{color:var(--water-ink,#2F6E8E)} .ds.hot .hi{color:var(--route)}
+.kit{margin-top:16px;background:var(--card);border:1px solid var(--hair);border-radius:8px;padding:14px 16px 6px}
+.kit-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;margin-bottom:10px}
+.kit-head h3{font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:.02em;margin:0;text-transform:uppercase} .kit-head span{font-size:13px;color:var(--ink-soft)}
+.kit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.ki h4{font-family:var(--display);font-size:16px;font-weight:600;margin:0 0 6px;color:var(--route);letter-spacing:.02em}
+.ki p{margin:0 0 8px;font-size:13.5px;line-height:1.5;color:var(--ink-soft)} .ki p b{color:var(--ink);font-weight:600}
+@media (max-width:820px){ .kit-grid{grid-template-columns:1fr} }
+@media (max-width:820px){ .ds-row{grid-template-columns:repeat(6,minmax(0,1fr))} }
+@media (max-width:460px){ .ds-row{grid-template-columns:repeat(4,minmax(0,1fr))} .ds .hi{font-size:19px} }
 /* documents */
 .docs{margin-top:26px;padding-top:16px;border-top:1px solid var(--hair)}
 .docs h2{font-family:var(--display);font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin:0 0 4px}
@@ -132,8 +213,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:
 .doclist a.pack{border-color:var(--route);background:var(--card)} .doclist a.pack .ic{border-color:var(--route)}
 
 </style>
-</head>
-<body>
+
 <div class="wrap">
   <header class="top">
     <div>
@@ -219,7 +299,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:
 <g class="stay" data-stay="manch" tabindex="0" role="button" aria-label="Manchester" transform="translate(386.0,90.7)"><circle class="halo" r="16"/><circle class="pin" r="10"/><text class="num" y="4" text-anchor="middle">4</text><text class="name" x="16" y="-6">Manchester</text><text class="sub" x="16" y="7">Vermont</text></g>
 <g id="car" class="car" style="display:none"><rect x="-9" y="-5" width="18" height="10" rx="3"/><rect x="-4" y="-4" width="7" height="8" rx="1.5" class="glass"/><circle cx="-5" cy="6" r="2"/><circle cx="5" cy="6" r="2"/><circle cx="-5" cy="-6" r="2"/><circle cx="5" cy="-6" r="2"/></g>
 </svg>
-      <div class="hud" id="hud"><b id="hudWhere">Ahmedabad</b><span id="hudNote">Fri 16 Oct · wheels up 17:55</span><br><span class="km" id="hudKm"></span></div>
+      <div class="hud" id="hud"><b id="hudWhere">Ahmedabad</b><span id="hudNote">Fri 16 Oct · wheels up 17:55</span><br><span class="temp" id="hudTemp"></span><br><span class="km" id="hudKm"></span></div>
     </div>
 
     <aside class="margin">
@@ -236,6 +316,84 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:
       <div class="row air"><span class="n">✈</span><div><div class="t">Fly home</div><div class="d">Mon 26 Oct · 11:05 from JFK</div></div><span class="nt">AI 116</span></div>
     </aside>
   </div>
+
+  <section class="daystrip" aria-label="Day by day temperatures">
+    <div class="ds-head"><h2>Weather &amp; what to wear</h2><span class="ds-note">Late-October averages, not a forecast — check the real one from about 12 October. Summits run 6–8° colder than the valleys, with wind.</span></div>
+    <div class="wx" id="wx">
+      <div class="sky" id="sky" aria-hidden="true">
+        <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="skyg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="sk1"/><stop offset="1" class="sk2"/></linearGradient>
+            <radialGradient id="sung"><stop offset="0" stop-color="#FFF1C2"/><stop offset=".7" stop-color="#F8C04A"/><stop offset="1" stop-color="#F0A52C"/></radialGradient>
+            <radialGradient id="halo"><stop offset="0" stop-color="#FFE9A8" stop-opacity=".9"/><stop offset="1" stop-color="#FFE9A8" stop-opacity="0"/></radialGradient>
+            <path id="leaf" d="M0,-10 L2,-4 L7,-6 L5,-1 L10,1 L4,3 L5,8 L0,5 L-5,8 L-4,3 L-10,1 L-5,-1 L-7,-6 L-2,-4 Z"/>
+            <g id="cl"><ellipse cx="0" cy="0" rx="36" ry="14"/><circle cx="-16" cy="-7" r="14"/><circle cx="6" cy="-13" r="19"/><circle cx="26" cy="-4" r="13"/></g>
+          </defs>
+          <rect width="320" height="180" fill="url(#skyg)"/>
+          <g class="stars"><circle cx="12" cy="18" r="1.2"/><circle cx="40" cy="40" r="0.9"/><circle cx="66" cy="12" r="1.4"/><circle cx="95" cy="52" r="0.8"/><circle cx="120" cy="24" r="1.1"/><circle cx="150" cy="60" r="0.9"/><circle cx="178" cy="16" r="1.3"/><circle cx="205" cy="44" r="0.8"/><circle cx="232" cy="28" r="1.2"/><circle cx="260" cy="58" r="0.9"/><circle cx="290" cy="14" r="1.4"/><circle cx="310" cy="48" r="0.8"/><circle cx="28" cy="80" r="0.8"/><circle cx="84" cy="92" r="1"/><circle cx="140" cy="98" r="0.8"/><circle cx="196" cy="84" r="1.1"/><circle cx="248" cy="100" r="0.8"/><circle cx="300" cy="88" r="1"/><circle cx="58" cy="66" r="0.7"/><circle cx="170" cy="38" r="0.7"/><circle cx="224" cy="70" r="0.7"/><circle cx="276" cy="36" r="0.7"/></g>
+          <g class="moon"><circle r="11" fill="#F1EEE2"/><circle cx="5" cy="-4" r="9" class="moonbite"/><circle cx="-3" cy="2" r="1.6" fill="#DCD8C8" opacity=".7"/><circle cx="-6" cy="-3" r="1" fill="#DCD8C8" opacity=".6"/></g>
+          <g class="sun"><circle class="haloc" r="60" fill="url(#halo)"/><g class="rays"><g id="ray"><rect x="-2" y="-46" width="4" height="16" rx="2"/></g><use href="#ray" transform="rotate(30)"/><use href="#ray" transform="rotate(60)"/><use href="#ray" transform="rotate(90)"/><use href="#ray" transform="rotate(120)"/><use href="#ray" transform="rotate(150)"/><use href="#ray" transform="rotate(180)"/><use href="#ray" transform="rotate(210)"/><use href="#ray" transform="rotate(240)"/><use href="#ray" transform="rotate(270)"/><use href="#ray" transform="rotate(300)"/><use href="#ray" transform="rotate(330)"/></g><circle r="24" fill="url(#sung)"/></g>
+          <g class="birds"><path class="b1" d="M0,0 q4,-4 8,0 q4,-4 8,0"/><path class="b2" d="M0,0 q3,-3 6,0 q3,-3 6,0"/><path class="b3" d="M0,0 q3,-3 6,0 q3,-3 6,0"/></g>
+          <g class="clouds"><use href="#cl" class="cloud cs c1"/><use href="#cl" class="cloud c1"/><use href="#cl" class="cloud cs c2"/><use href="#cl" class="cloud c2"/><use href="#cl" class="cloud cs c3"/><use href="#cl" class="cloud c3"/><use href="#cl" class="cloud c4"/></g>
+          <g class="wind"><path d="M-40,60 q30,-10 60,0 t60,0 t60,0 t60,0 t60,0 t60,0"/><path d="M-40,92 q30,-10 60,0 t60,0 t60,0 t60,0 t60,0 t60,0"/><path d="M-40,124 q30,-10 60,0 t60,0 t60,0 t60,0 t60,0 t60,0"/><path d="M-40,40 q30,-8 60,0 t60,0 t60,0 t60,0 t60,0 t60,0"/></g>
+          <g class="rain"><line x1="20" y1="30" x2="13" y2="52"/><line x1="55" y1="70" x2="48" y2="92"/><line x1="90" y1="20" x2="83" y2="42"/><line x1="120" y1="60" x2="113" y2="82"/><line x1="150" y1="100" x2="143" y2="122"/><line x1="185" y1="40" x2="178" y2="62"/><line x1="215" y1="80" x2="208" y2="102"/><line x1="250" y1="25" x2="243" y2="47"/><line x1="280" y1="65" x2="273" y2="87"/><line x1="310" y1="45" x2="303" y2="67"/><line x1="40" y1="120" x2="33" y2="142"/><line x1="75" y1="150" x2="68" y2="172"/><line x1="110" y1="130" x2="103" y2="152"/><line x1="170" y1="140" x2="163" y2="162"/><line x1="230" y1="120" x2="223" y2="142"/><line x1="265" y1="150" x2="258" y2="172"/><line x1="300" y1="110" x2="293" y2="132"/><line x1="140" y1="10" x2="133" y2="32"/></g>
+          <g class="snow"><circle cx="15" cy="10" r="2.2"/><circle cx="45" cy="50" r="1.6"/><circle cx="75" cy="20" r="2.6"/><circle cx="105" cy="70" r="1.8"/><circle cx="135" cy="30" r="2.2"/><circle cx="165" cy="80" r="1.5"/><circle cx="195" cy="25" r="2.8"/><circle cx="225" cy="60" r="1.8"/><circle cx="255" cy="15" r="2.2"/><circle cx="285" cy="55" r="1.6"/><circle cx="310" cy="35" r="2.4"/><circle cx="30" cy="110" r="1.8"/><circle cx="90" cy="130" r="2.4"/><circle cx="150" cy="120" r="1.6"/><circle cx="210" cy="140" r="2.2"/><circle cx="270" cy="115" r="1.8"/><circle cx="60" cy="160" r="1.5"/><circle cx="240" cy="165" r="2"/></g>
+          <g class="hills"><path class="h2" d="M0,180 L0,126 Q50,96 110,118 T230,104 T320,122 L320,180 Z"/><path class="h1" d="M0,180 L0,146 Q60,112 120,140 T240,128 T320,142 L320,180 Z"/><path class="road" d="M-10,172 Q60,150 130,158 T260,146 T330,152"/></g>
+          <g class="frost"><circle cx="30" cy="150" r="1.2"/><circle cx="70" cy="146" r="1.2"/><circle cx="110" cy="156" r="1.2"/><circle cx="150" cy="150" r="1.2"/><circle cx="190" cy="144" r="1.2"/><circle cx="230" cy="148" r="1.2"/><circle cx="270" cy="142" r="1.2"/><circle cx="300" cy="150" r="1.2"/><circle cx="50" cy="165" r="1.2"/><circle cx="130" cy="168" r="1.2"/><circle cx="210" cy="164" r="1.2"/><circle cx="290" cy="166" r="1.2"/></g>
+          <rect class="nightv" width="320" height="180"/>
+          <g class="hillcar"><g class="hc"><rect x="-7" y="-5" width="14" height="6" rx="2"/><rect x="-4" y="-8" width="7" height="4" rx="1.5"/><circle cx="-4" cy="2" r="1.8"/><circle cx="4" cy="2" r="1.8"/></g></g>
+          <g class="leaves"><use href="#leaf" class="lf l1"/><use href="#leaf" class="lf l2"/><use href="#leaf" class="lf l3"/><use href="#leaf" class="lf l4"/><use href="#leaf" class="lf l5"/><use href="#leaf" class="lf l6"/><use href="#leaf" class="lf l7"/><use href="#leaf" class="lf l8"/></g>
+        </svg>
+        <div class="skylbl"><b id="wxPlace">New York</b><span id="wxSky">Typical late-October day</span></div>
+        <div class="skyclock"><b id="wxClock">07:09</b><span id="wxPhase">sunrise</span></div>
+      </div>
+      <div class="wxnums">
+        <div class="big"><span class="hi" id="wxHi">17°</span><span class="lo" id="wxLo">10°</span><span class="fl" id="wxFeels"></span></div>
+        <dl>
+          <div><dt>Sunrise</dt><dd id="wxRise">07:09</dd></div>
+          <div><dt>Sunset</dt><dd id="wxSet">18:13</dd></div>
+          <div><dt>Golden hour</dt><dd id="wxGold">17:15</dd></div>
+          <div><dt>Wind</dt><dd id="wxWind">light</dd></div>
+          <div><dt>Wet day</dt><dd id="wxRain">3 in 10</dd></div>
+        </dl>
+      </div>
+      <div class="wear">
+        <div class="wear-head"><span class="k">What to wear</span><span class="layers" id="wxLayers" aria-label="layers"><i></i><i></i><i></i><i></i><i></i></span></div>
+        <div class="garments" id="garments">
+          <span class="g th" data-g="thermal" title="Thermal base layer"><svg viewBox="0 0 24 24"><path d="M8 3l-5 3 1 9 3-.5V21h10v-6.5l3 .5 1-9-5-3a3 3 0 0 1-8 0z"/><path d="M9 9h6M9 12h6M9 15h6M9 18h6" class="zip"/></svg><em>thermal</em></span>
+          <span class="g" data-g="tee" title="T-shirt"><svg viewBox="0 0 24 24"><path d="M8 3l-5 3 2 4 2-1v12h10V9l2 1 2-4-5-3a3 3 0 0 1-8 0z"/></svg><em>tee</em></span>
+          <span class="g" data-g="long" title="Long sleeve"><svg viewBox="0 0 24 24"><path d="M8 3l-5 3 1 9 3-.5V21h10v-6.5l3 .5 1-9-5-3a3 3 0 0 1-8 0z"/></svg><em>long sleeve</em></span>
+          <span class="g" data-g="fleece" title="Fleece"><svg viewBox="0 0 24 24"><path d="M8 3l-5 3 1 9 3-.5V21h10v-6.5l3 .5 1-9-5-3a3 3 0 0 1-8 0z"/><path d="M12 6v15" class="zip"/></svg><em>fleece</em></span>
+          <span class="g" data-g="light" title="Normal jacket"><svg viewBox="0 0 24 24"><path d="M7 3l-4 3 1 9 3-.5V21h5V7l-5-4zM17 3l4 3-1 9-3-.5V21h-5V7l5-4z"/><path d="M12 7v14" class="zip"/></svg><em>normal jacket</em></span>
+          <span class="g" data-g="puffer" title="Winter jacket"><svg viewBox="0 0 24 24"><path d="M7 3l-4 3 1 9 3-.5V21h5V7l-5-4zM17 3l4 3-1 9-3-.5V21h-5V7l5-4z"/><path d="M4 10h5M4 14h5M4 18h5M15 10h5M15 14h5M15 18h5M12 7v14" class="zip"/></svg><em>winter jacket</em></span>
+          <span class="g" data-g="shell" title="Rain shell"><svg viewBox="0 0 24 24"><path d="M12 2c-3 0-5 2-5 5l-4 2 1 8 3-.5V21h10v-4.5l3 .5 1-8-4-2c0-3-2-5-5-5z"/><path d="M12 9v12" class="zip"/></svg><em>rain shell</em></span>
+          <span class="g" data-g="hat" title="Warm hat"><svg viewBox="0 0 24 24"><path d="M5 15a7 7 0 0 1 14 0v2H5zM4 17h16v3H4z"/><circle cx="12" cy="7" r="1.5"/></svg><em>hat</em></span>
+          <span class="g" data-g="gloves" title="Gloves"><svg viewBox="0 0 24 24"><path d="M7 21V10a2 2 0 0 1 4 0V4a1.5 1.5 0 0 1 3 0v6l2-2a1.5 1.5 0 0 1 2.5 1.5L17 14v7z"/></svg><em>gloves</em></span>
+          <span class="g" data-g="boots" title="Waterproof boots"><svg viewBox="0 0 24 24"><path d="M6 3h7v9l6 3v4H4v-4h2z"/></svg><em>boots</em></span>
+          <span class="g" data-g="sneakers" title="Walking shoes"><svg viewBox="0 0 24 24"><path d="M3 15l3-4h4l3 3 6 1a3 3 0 0 1 2 3v1H3z"/></svg><em>walking shoes</em></span>
+        </div>
+        <p class="tip" id="wxTip"></p>
+      </div>
+    </div>
+    <div class="ds-row" id="dayStrip"></div>
+    <div class="kit">
+      <div class="kit-head"><h3>The kit — what to actually bring</h3><span>One of each. Everything below fits in one cabin bag between you.</span></div>
+      <div class="kit-grid">
+        <div class="ki"><h4>Jackets — two, not one</h4>
+          <p><b>Winter jacket:</b> a packable down or synthetic puffer, the kind that squashes into its own pocket. That is your warm layer for Lenox evenings, Vermont mornings and both summits. <b>Not</b> a heavy wool overcoat — too bulky, not warm enough in wind, useless when wet.</p>
+          <p><b>Normal jacket:</b> whatever you'd wear on a cool evening in Ahmedabad in January — denim, a light bomber, a blazer. New York only. Optional; the fleece does the same job.</p>
+          <p><b>Rain shell:</b> a thin waterproof with a hood. Goes over everything on the summits as a windbreak, and over the fleece if it rains. Weighs nothing.</p></div>
+        <div class="ki"><h4>Shoes — two pairs</h4>
+          <p><b>Waterproof walking boots or shoes:</b> Kaaterskill is wet rock and spray, Storm King is wet grass, both summits are mud and wind. Ankle support is nice, waterproof is essential. Break them in at home for a week first — new boots on a 5 km trail is how holidays go wrong.</p>
+          <p><b>Comfortable sneakers:</b> for New York, Lenox village and the drive. You will walk 10–12 km a day in Manhattan; cushioning matters more than looks.</p>
+          <p>Leave at home: leather dress shoes, sandals, anything canvas.</p></div>
+        <div class="ki"><h4>Thermals — two days only</h4>
+          <p><b>Greylock (Thu 22) and Equinox (Sat 24)</b> are the thermal days — both over 1,000 m, both near freezing with wind. One set of thermal top and bottoms, merino or synthetic; put them on at the hotel in the morning, take them off at lunch.</p>
+          <p>Everywhere else a long sleeve under the fleece is enough. The fleece itself is the hardest-working thing in the bag: on every day from the 19th to the 26th.</p>
+          <p><b>Small things that matter:</b> a warm hat that covers the ears, thin gloves (touchscreen-friendly for photos), wool socks for the boot days, sunglasses — October sun is low and straight in your eyes on the drive.</p></div>
+      </div>
+    </div>
+  </section>
 
   <section class="docs" id="docs">
     <h2>The paperwork</h2>
@@ -260,7 +418,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:
 
 <script>
 (function(){
-  var DAYS = [{"d": "Fri 16 Oct", "where": "In the air", "note": "Ahmedabad \u2192 Mumbai \u2192 New York overnight", "stay": null, "leg": null}, {"d": "Sat 17 Oct", "where": "New York", "note": "Land at JFK 08:20. Lower Manhattan on foot.", "stay": "nyc1", "leg": null}, {"d": "Sun 18 Oct", "where": "New York", "note": "Central Park, Midtown, the subway.", "stay": "nyc1", "leg": null}, {"d": "Mon 19 Oct", "where": "Cold Spring", "note": "Collect the car 09:00. Storm King, then over the river.", "stay": "cold", "leg": 0}, {"d": "Tue 20 Oct", "where": "Cold Spring", "note": "Up into the Catskills for Kaaterskill Falls.", "stay": "cold", "leg": 1}, {"d": "Wed 21 Oct", "where": "Lenox", "note": "East across the state line into the Berkshires.", "stay": "lenox", "leg": 2}, {"d": "Thu 22 Oct", "where": "Lenox", "note": "Mount Greylock summit and the Mohawk Trail.", "stay": "lenox", "leg": 3}, {"d": "Fri 23 Oct", "where": "Manchester", "note": "North into Vermont.", "stay": "manch", "leg": 4}, {"d": "Sat 24 Oct", "where": "Manchester", "note": "Mount Equinox and the back roads.", "stay": "manch", "leg": 5}, {"d": "Sun 25 Oct", "where": "New York", "note": "The long drive home. Car back by 18:30.", "stay": "nyc2", "leg": 6}, {"d": "Mon 26 Oct", "where": "In the air", "note": "JFK 11:05 \u2192 Mumbai.", "stay": null, "leg": null}, {"d": "Tue 27 Oct", "where": "Home", "note": "Ahmedabad 16:50.", "stay": null, "leg": null}];
+  var DAYS = [{"d": "Fri 16 Oct", "where": "In the air", "note": "Ahmedabad \u2192 Mumbai \u2192 New York overnight", "stay": null, "leg": null, "hi": 35, "lo": 24, "place": "Ahmedabad", "sky": "sun", "rise": "06:37", "set": "18:14", "feels": null, "wind": "still", "rain": 5, "layers": 1, "wear": ["tee", "sneakers"], "thermal": false, "tip": "Dress for Ahmedabad, but keep a fleece in the cabin bag \u2014 the aircraft runs at 20\u00b0 for fifteen hours."}, {"d": "Sat 17 Oct", "where": "New York", "note": "Land at JFK 08:20. Lower Manhattan on foot.", "stay": "nyc1", "leg": null, "hi": 17, "lo": 10, "place": "New York", "sky": "partly", "rise": "07:09", "set": "18:13", "feels": null, "wind": "light", "rain": 30, "layers": 2, "wear": ["long", "light", "sneakers"], "thermal": false, "tip": "Mild and bright most days. The normal jacket over a long sleeve; the shoes matter more than the coat \u2014 you will walk 12 km."}, {"d": "Sun 18 Oct", "where": "New York", "note": "Central Park, Midtown, the subway.", "stay": "nyc1", "leg": null, "hi": 17, "lo": 10, "place": "New York", "sky": "partly", "rise": "07:10", "set": "18:12", "feels": null, "wind": "light", "rain": 30, "layers": 2, "wear": ["long", "light", "sneakers"], "thermal": false, "tip": "Same as yesterday. Central Park in the morning is cool and damp underfoot; it warms by eleven."}, {"d": "Mon 19 Oct", "where": "Cold Spring", "note": "Collect the car 09:00. Storm King, then over the river.", "stay": "cold", "leg": 0, "hi": 16, "lo": 7, "place": "Hudson Valley", "sky": "partly", "rise": "07:12", "set": "18:09", "feels": 13, "wind": "breezy", "rain": 30, "layers": 3, "wear": ["long", "fleece", "shell", "boots"], "thermal": false, "tip": "Storm King is 200 hectares of open hillside with nothing to hide behind. Fleece plus the rain shell as a windbreak; the walking boots, because the grass is wet until noon."}, {"d": "Tue 20 Oct", "where": "Cold Spring", "note": "Up into the Catskills for Kaaterskill Falls.", "stay": "cold", "leg": 1, "hi": 12, "lo": 4, "place": "Catskills, 600 m", "sky": "cloud", "rise": "07:14", "set": "18:07", "feels": 9, "wind": "breezy", "rain": 35, "layers": 3, "wear": ["long", "fleece", "shell", "hat", "boots"], "thermal": false, "tip": "The falls trail is wet rock and spray all year. Waterproof boots are not optional, and the rain shell doubles as a windbreak at the top. No thermal needed \u2014 you will be climbing."}, {"d": "Wed 21 Oct", "where": "Lenox", "note": "East across the state line into the Berkshires.", "stay": "lenox", "leg": 2, "hi": 13, "lo": 4, "place": "Lenox", "sky": "partly", "rise": "07:13", "set": "18:02", "feels": 11, "wind": "light", "rain": 30, "layers": 3, "wear": ["long", "fleece", "puffer", "sneakers"], "thermal": false, "tip": "Pleasant by day, properly cold once the sun drops at six. The evening walk into the village is the first outing for the winter jacket."}, {"d": "Thu 22 Oct", "where": "Lenox", "note": "Mount Greylock summit and the Mohawk Trail.", "stay": "lenox", "leg": 3, "hi": 6, "lo": 0, "place": "Greylock summit, 1,063 m", "sky": "wind", "rise": "07:14", "set": "18:00", "feels": 1, "wind": "strong, 30\u201340 km/h", "rain": 35, "layers": 5, "wear": ["thermal", "long", "fleece", "puffer", "shell", "hat", "gloves", "boots"], "thermal": true, "tip": "Thermal day. Put the base layer on at the hotel \u2014 top and bottoms. Six degrees with wind on the summit feels like one. Fleece, winter jacket, shell over the top against the wind, hat, gloves, boots. Then shed it all in Williamstown for lunch."}, {"d": "Fri 23 Oct", "where": "Manchester", "note": "North into Vermont.", "stay": "manch", "leg": 4, "hi": 12, "lo": 3, "place": "Manchester, VT", "sky": "partly", "rise": "07:15", "set": "17:57", "feels": 10, "wind": "light", "rain": 30, "layers": 3, "wear": ["long", "fleece", "puffer", "sneakers"], "thermal": false, "tip": "Frost on the car at dawn is normal here now. Scrape it before you drive. Winter jacket for the morning; by noon it is a fleece day."}, {"d": "Sat 24 Oct", "where": "Manchester", "note": "Mount Equinox and the back roads.", "stay": "manch", "leg": 5, "hi": 5, "lo": -1, "place": "Equinox summit, 1,163 m", "sky": "snow", "rise": "07:17", "set": "17:56", "feels": -1, "wind": "strong, 30\u201340 km/h", "rain": 35, "layers": 5, "wear": ["thermal", "long", "fleece", "puffer", "shell", "hat", "gloves", "boots"], "thermal": true, "tip": "Thermal day, and the coldest of the trip. Below freezing on the summit with wind; a dusting of snow is possible. Base layer, fleece, winter jacket, shell, hat, gloves, boots. Twenty minutes of views, then back to the car heater."}, {"d": "Sun 25 Oct", "where": "New York", "note": "The long drive home. Car back by 18:30.", "stay": "nyc2", "leg": 6, "hi": 16, "lo": 9, "place": "New York", "sky": "partly", "rise": "07:18", "set": "18:02", "feels": null, "wind": "light", "rain": 30, "layers": 2, "wear": ["long", "fleece", "puffer", "sneakers"], "thermal": false, "tip": "Cold in Vermont at seven, mild in Manhattan by six. Winter jacket on for the covered bridge at dawn, then peel layers off in the car as you go south."}, {"d": "Mon 26 Oct", "where": "In the air", "note": "JFK 11:05 \u2192 Mumbai.", "stay": null, "leg": null, "hi": 16, "lo": 9, "place": "New York", "sky": "partly", "rise": "07:19", "set": "18:00", "feels": null, "wind": "light", "rain": 30, "layers": 2, "wear": ["long", "light", "sneakers"], "thermal": false, "tip": "Seven-thirty cab in the half-light. Normal jacket for the kerb, fleece for the cabin, and the winter things go in the hold."}, {"d": "Tue 27 Oct", "where": "Home", "note": "Ahmedabad 16:50.", "stay": null, "leg": null, "hi": 34, "lo": 22, "place": "Ahmedabad", "sky": "sun", "rise": "06:42", "set": "18:06", "feels": null, "wind": "still", "rain": 5, "layers": 1, "wear": ["tee", "sneakers"], "thermal": false, "tip": "Home."}];
   var LEGKM = [120, 230, 175, 110, 120, 90, 530];
   var svg = document.getElementById('atlas'), master = document.getElementById('master'), car = document.getElementById('car');
   var legs = Array.prototype.slice.call(svg.querySelectorAll('.route'));
@@ -270,7 +428,15 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:
   legs.forEach(function(l){ var L = l.getTotalLength(); bounds.push([acc, acc + L]); acc += L; });
   var scaleFix = total / acc; bounds = bounds.map(function(b){ return [b[0]*scaleFix, b[1]*scaleFix]; });
 
-  var hudWhere = document.getElementById('hudWhere'), hudNote = document.getElementById('hudNote'), hudKm = document.getElementById('hudKm');
+  var hudWhere = document.getElementById('hudWhere'), hudNote = document.getElementById('hudNote'), hudKm = document.getElementById('hudKm'), hudTemp = document.getElementById('hudTemp');
+  var strip = document.getElementById('dayStrip');
+  DAYS.forEach(function(d, i){
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'ds' + (d.hi <= 7 ? ' cold' : (d.hi >= 30 ? ' hot' : '')); b.dataset.day = i;
+    b.setAttribute('aria-label', d.d + ', ' + d.place + ', high ' + d.hi + ' low ' + d.lo + ' degrees. ' + d.tip);
+    b.innerHTML = '<span class="dd">' + d.d.replace(' Oct','') + '</span><span class="hi">' + d.hi + '°</span><span class="lo">' + d.lo + '°</span><span class="pl">' + d.place + '</span>' + (d.thermal ? '<span class="tm">thermal</span>' : '');
+    b.title = d.tip;
+    strip.appendChild(b);
+  });
   var dayIn = document.getElementById('day'), dayOut = document.getElementById('dayOut'), btn = document.getElementById('drive');
   var mapbox = document.getElementById('mapbox');
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -293,6 +459,9 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:
     var d = DAYS[i]; frac = (frac === undefined) ? 1 : frac;
     dayIn.value = i; dayOut.textContent = d.d;
     hudWhere.textContent = d.where; hudNote.textContent = d.d + ' · ' + d.note;
+    hudTemp.textContent = d.hi + '° / ' + d.lo + '° · ' + d.layers + (d.layers === 1 ? ' layer' : ' layers');
+    fillWx(d);
+    strip.querySelectorAll('.ds').forEach(function(b){ b.classList.toggle('on', +b.dataset.day === i); });
     var km = kmThrough(i - 1) + (d.leg !== null ? Math.round(LEGKM[d.leg] * frac) : 0);
     hudKm.textContent = km ? km.toLocaleString('en-IN') + ' km driven' : '';
     legs.forEach(function(l, j){ l.classList.toggle('lit', d.leg === j); l.classList.toggle('dim', false); });
@@ -305,13 +474,24 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:
 
   // clicking pins and rows
   var rowFor = {nyc1:1, cold:3, lenox:5, manch:7, nyc2:9};
-  document.querySelectorAll('.row[data-stay]').forEach(function(r){ if (r.dataset.stay === 'car') return; r.addEventListener('click', function(){ stop(); showDay(rowFor[r.dataset.stay]); }); });
+  document.querySelectorAll('.row[data-stay]').forEach(function(r){ if (r.dataset.stay === 'car') return; r.addEventListener('click', function(){
+    stop();
+    if (r.classList.contains('on')){ r.classList.remove('on'); document.querySelector('.card[data-card="' + r.dataset.stay + '"]').classList.remove('open'); return; }
+    showDay(rowFor[r.dataset.stay]);
+  }); });
   document.querySelectorAll('.stay').forEach(function(s){
-    var go = function(){ stop(); var id = s.dataset.stay; showDay(rowFor[id]); };
+    var go = function(){ stop(); var id = s.dataset.stay; if (s.classList.contains('on')){ select(null); return; } showDay(rowFor[id]); };
     s.addEventListener('click', go);
     s.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); go(); } });
   });
   dayIn.addEventListener('input', function(){ stop(); showDay(+dayIn.value); });
+  var wxPanel = document.getElementById('wx');
+  strip.addEventListener('click', function(e){
+    var b = e.target.closest('.ds'); if (!b) return; stop();
+    if (b.classList.contains('on') && !wxPanel.hidden){ wxPanel.hidden = true; b.classList.remove('on'); select(null); return; }
+    wxPanel.hidden = false; showDay(+b.dataset.day);
+    if (window.innerWidth < 900) wxPanel.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
+  });
 
   // the drive
   var raf = null, running = false;
@@ -333,9 +513,71 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:
   }
   btn.addEventListener('click', function(){ if (running) stop(); else { showDay(0); play(); } });
 
+  // weather & wear panel
+  var SKY = {sun:'Clear and warm', partly:'Sun and cloud, a typical late-October day', cloud:'Grey and damp in the hills', wind:'Cold wind over the summit', snow:'Below freezing on top; a dusting of snow is possible', rain:'Showers'};
+  var skyEl = document.getElementById('sky');
+  // ── a running day: dawn to night on the real sunrise/sunset for the selected day
+  var skySVG = skyEl.querySelector('svg'), sk1 = skySVG.querySelector('.sk1'), sk2 = skySVG.querySelector('.sk2');
+  var sunG = skySVG.querySelector('.sun'), moonG = skySVG.querySelector('.moon'), stars = skySVG.querySelectorAll('.stars circle'), nightV = skySVG.querySelector('.nightv');
+  var clockEl = document.getElementById('wxClock'), phaseEl = document.getElementById('wxPhase');
+  var dayRise = 7.2, daySet = 18, dayCond = 'partly';
+  var KEY = [[0,'#0A1230','#1B2A4A'],[5,'#1A2140','#3A3A5C'],[6.3,'#45598A','#E09A64'],[7.1,'#6C9AC6','#F4C27A'],[9,'#79B7E6','#DCEAF3'],[13,'#5FA6E0','#E3EEF4'],[16,'#7AAED8','#F2DDB0'],[17.4,'#8FA6C8','#F0A860'],[18.1,'#5C5A8A','#E8744E'],[18.9,'#2A3160','#7C5076'],[20.2,'#121B3A','#2A3356'],[24,'#0A1230','#1B2A4A']];
+  function hex(h){ return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
+  function mix(a,b,t){ return [0,1,2].map(function(i){ return Math.round(a[i]+(b[i]-a[i])*t); }); }
+  function rgb(c){ return 'rgb(' + c.join(',') + ')'; }
+  function skyAt(h){  // h in [0,24), shifted so the key times track the day's own sunrise/sunset
+    var shift = (h < 12) ? (dayRise - 7.1) : (daySet - 18.1); h = h - shift; if (h < 0) h += 24; if (h >= 24) h -= 24;
+    for (var i = 0; i < KEY.length - 1; i++){ if (h >= KEY[i][0] && h < KEY[i+1][0]){ var t = (h-KEY[i][0])/(KEY[i+1][0]-KEY[i][0]); return [mix(hex(KEY[i][1]),hex(KEY[i+1][1]),t), mix(hex(KEY[i][2]),hex(KEY[i+1][2]),t)]; } }
+    return [hex(KEY[0][1]), hex(KEY[0][2])];
+  }
+  var GREY1 = hex('#7A8B9C'), GREY2 = hex('#C9D2D9');
+  function paintSky(h){
+    var c = skyAt(h), dull = (dayCond === 'cloud' || dayCond === 'wind' || dayCond === 'snow') ? .55 : 0;
+    var top = mix(c[0], GREY1, dull), bot = mix(c[1], GREY2, dull);
+    sk1.style.stopColor = rgb(top); sk2.style.stopColor = rgb(bot);
+    var up = h > dayRise && h < daySet, p = up ? (h - dayRise)/(daySet - dayRise) : 0;
+    if (up){ sunG.style.display = ''; sunG.setAttribute('transform', 'translate(' + (24 + p*272).toFixed(1) + ',' + (158 - Math.sin(p*Math.PI)*120).toFixed(1) + ')'); } else sunG.style.display = 'none';
+    var nightness = up ? Math.max(0, 1 - Math.min(p, 1-p) * 8) * .35 : Math.min(1, Math.min(Math.abs(h - daySet), Math.abs(h - dayRise + (h < dayRise ? 0 : 24)), Math.abs(h + 24 - daySet)) / 1.4);
+    if (!up) nightness = Math.min(1, Math.min(h < dayRise ? dayRise - h : h - daySet, h < dayRise ? h + 24 - daySet : dayRise + 24 - h) / 1.4);
+    nightV.style.opacity = (nightness * .62).toFixed(3);
+    stars.forEach(function(st, i){ st.style.opacity = (nightness * (0.5 + 0.5*Math.sin(h*7 + i))).toFixed(2); });
+    if (!up){ var np = h > daySet ? (h - daySet)/(24 - daySet + dayRise) : (h + 24 - daySet)/(24 - daySet + dayRise); moonG.setAttribute('transform', 'translate(' + (24 + np*272).toFixed(1) + ',' + (150 - Math.sin(np*Math.PI)*110).toFixed(1) + ')'); moonG.style.opacity = Math.min(1, nightness*1.4).toFixed(2); } else moonG.style.opacity = 0;
+    skyEl.classList.toggle('night', nightness > .55);
+    var hh = Math.floor(h), mm = Math.floor((h - hh)*60); clockEl.textContent = ('0'+hh).slice(-2) + ':' + ('0'+mm).slice(-2);
+    var ph = !up ? (h < dayRise ? (h > dayRise - 1 ? 'dawn' : 'night') : (h < daySet + 1 ? 'dusk' : 'night')) : (p < .08 ? 'sunrise' : p < .35 ? 'morning' : p < .62 ? 'midday' : p < .9 ? 'afternoon' : 'golden hour');
+    phaseEl.textContent = ph;
+  }
+  var CYCLE = 34000, t0sky = performance.now(), reduceSky = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function hourAt(now){  // 26 s of daylight (an hour either side of the sun), 8 s of night
+    var f = ((now - t0sky) % CYCLE) / CYCLE, a = dayRise - 1, b = daySet + 1, dayFrac = 26/34;
+    if (f < dayFrac) return a + (b - a) * (f / dayFrac);
+    var g = (f - dayFrac) / (1 - dayFrac); return (b + (24 - (b - a)) * g) % 24;
+  }
+  function tickSky(now){ paintSky(hourAt(now)); requestAnimationFrame(tickSky); }
+  if (reduceSky) paintSky(13); else requestAnimationFrame(tickSky);
+  function fillWx(d){
+    skyEl.className = 'sky ' + d.sky + (d.leg !== null && d.leg !== undefined ? ' driving' : '') + (d.lo <= 0 ? ' frosty' : '');
+    dayCond = d.sky; var r = d.rise.split(':'), st = d.set.split(':'); dayRise = +r[0] + (+r[1])/60; daySet = +st[0] + (+st[1])/60;
+    t0sky = performance.now() - CYCLE * 0.12;  // restart a little after sunrise so the day begins at the top
+    if (reduceSky) paintSky(13);
+    document.getElementById('wxPlace').textContent = d.place; document.getElementById('wxSky').textContent = SKY[d.sky] || '';
+    document.getElementById('wxHi').textContent = d.hi + '°'; document.getElementById('wxLo').textContent = d.lo + '°';
+    document.getElementById('wxFeels').textContent = (d.feels !== null && d.feels !== undefined) ? 'feels like ' + d.feels + '° in the wind' : '';
+    document.getElementById('wxRise').textContent = d.rise; document.getElementById('wxSet').textContent = d.set;
+    var sp = d.set.split(':'), gh = (+sp[0]*60 + +sp[1]) - 60; document.getElementById('wxGold').textContent = ('0' + Math.floor(gh/60)).slice(-2) + ':' + ('0' + (gh%60)).slice(-2);
+    document.getElementById('wxWind').textContent = d.wind; document.getElementById('wxRain').textContent = Math.round(d.rain/10) + ' in 10';
+    document.querySelectorAll('#wxLayers i').forEach(function(el, k){ el.classList.toggle('on', k < d.layers); });
+    document.querySelectorAll('.g').forEach(function(g){ g.classList.toggle('on', d.wear.indexOf(g.dataset.g) >= 0); });
+    document.getElementById('wxTip').textContent = d.tip;
+  }
+
   // car row opens its own card
   var carRow = document.querySelector('.row[data-stay="car"]');
-  carRow.addEventListener('click', function(){ stop(); showDay(3, 0); select('car'); carRow.classList.add('on'); });
+  carRow.addEventListener('click', function(){
+    stop();
+    if (carRow.classList.contains('on')){ carRow.classList.remove('on'); document.querySelector('.card[data-card="car"]').classList.remove('open'); return; }
+    showDay(3, 0); select('car'); carRow.classList.add('on');
+  });
 
   // copy buttons
   document.querySelectorAll('.copy').forEach(function(b){
@@ -362,5 +604,3 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:
   showDay(0);
 })();
 </script>
-</body>
-</html>
